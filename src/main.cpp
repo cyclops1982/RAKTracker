@@ -46,6 +46,14 @@ static lmh_callback_t lora_callbacks = {BoardGetBatteryLevel, BoardGetUniqueId, 
 
 static lmh_param_t lora_param_init = {LORAWAN_ADR_ON, LORAWAN_DATERATE, LORAWAN_PUBLIC_NETWORK, JOINREQ_NBTRIALS, LORAWAN_TX_POWER, LORAWAN_DUTYCYCLE_OFF};
 
+#define PIN_VBAT WB_A0
+
+#define VBAT_MV_PER_LSB (0.806F)   // 3.0V ADC range and 12 - bit ADC resolution = 3300mV / 4096
+#define VBAT_DIVIDER (0.6F)        // 1.5M + 1M voltage divider on VBAT = (1.5M / (1M + 1.5M))
+#define VBAT_DIVIDER_COMP (1.846F) //  // Compensation factor for the VBAT divider
+
+#define REAL_VBAT_MV_PER_LSB (VBAT_DIVIDER_COMP * VBAT_MV_PER_LSB)
+
 void setup()
 {
   pinMode(WB_IO2, OUTPUT);
@@ -92,6 +100,63 @@ void setup()
   lmh_join();
 }
 
+/**
+ * @brief Get RAW Battery Voltage
+ */
+float readVBAT(void)
+{
+
+  unsigned int sum = 0, average_value = 0;
+  unsigned int read_temp[10] = {0};
+  unsigned char i = 0;
+  unsigned int adc_max = 0;
+  unsigned int adc_min = 4095;
+  average_value = analogRead(PIN_VBAT);
+  for (i = 0; i < 10; i++)
+  {
+    read_temp[i] = analogRead(PIN_VBAT);
+    if (read_temp[i] < adc_min)
+    {
+      adc_min = read_temp[i];
+    }
+    if (read_temp[i] > adc_max)
+    {
+      adc_max = read_temp[i];
+    }
+    sum = sum + read_temp[i];
+  }
+  average_value = (sum - adc_max - adc_min) >> 3;
+  Serial.printf("The ADC value is:%d\r\n", average_value);
+
+  // Convert the raw value to compensated mv, taking the resistor-
+  // divider into account (providing the actual LIPO voltage)
+  // ADC range is 0..3300mV and resolution is 12-bit (0..4095)
+  float volt = average_value * REAL_VBAT_MV_PER_LSB;
+
+  Serial.printf("The battery voltage is: %3.2f V\r\n", volt);
+  return volt;
+}
+
+/**
+ * @brief Convert from raw mv to percentage
+ * @param mvolts
+ *    RAW Battery Voltage
+ */
+uint8_t mvToPercent(float mvolts)
+{
+  if (mvolts < 3300)
+    return 0;
+
+  if (mvolts < 3600)
+  {
+    mvolts -= 3300;
+    return mvolts / 30;
+  }
+
+  mvolts -= 3600;
+  return 10 + (mvolts * 0.15F); // thats mvolts /6.66666666
+}
+
 uint16_t msgcount = 0;
 void loop()
 {
@@ -117,6 +182,11 @@ void loop()
       digitalWrite(LED_BUILTIN, LOW);
     }
 
+    float vbat_mv = readVBAT();
+
+    // Convert from raw mv to percentage (based on LIPO chemistry)
+    uint8_t vbat_per = mvToPercent(vbat_mv);
+
     if (lmh_join_status_get() != LMH_SET)
     {
       Serial.println("We have not joined lora yet...");
@@ -141,15 +211,15 @@ void loop()
     m_lora_app_data.buffer[size++] = msgcount;
     m_lora_app_data.buffsize = size;
 
-    lmh_error_status error = lmh_send(&m_lora_app_data, LMH_CONFIRMED_MSG);
-    if (error == LMH_SUCCESS)
-    {
-      Serial.println("lmh_send ok");
-    }
-    else
-    {
-      Serial.printf("lmh_send failed: %d\n", error);
-    }
+    // lmh_error_status error = lmh_send(&m_lora_app_data, LMH_CONFIRMED_MSG);
+    // if (error == LMH_SUCCESS)
+    // {
+    //   Serial.println("lmh_send ok");
+    // }
+    // else
+    // {
+    //   Serial.printf("lmh_send failed: %d\n", error);
+    // }
     msgcount++;
   }
   delay(5000);
