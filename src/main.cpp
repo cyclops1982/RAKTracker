@@ -48,6 +48,8 @@ static lmh_param_t lora_param_init = {LORAWAN_ADR_ON, LORAWAN_DATERATE, LORAWAN_
 
 #define PIN_VBAT WB_A0
 
+uint32_t vbat_pin = PIN_VBAT;
+
 #define VBAT_MV_PER_LSB (0.806F)   // 3.0V ADC range and 12 - bit ADC resolution = 3300mV / 4096
 #define VBAT_DIVIDER (0.6F)        // 1.5M + 1M voltage divider on VBAT = (1.5M / (1M + 1.5M))
 #define VBAT_DIVIDER_COMP (1.846F) //  // Compensation factor for the VBAT divider
@@ -81,23 +83,25 @@ void setup()
   {
     Serial.println("Init sensor_vl53l0x failed...");
   }
+  // Something needed for the battery stuff
+  analogReadResolution(12); // Can be 8, 10, 12 or 14
 
   Serial.println("Going to setup lora");
   // Initialize LoRa chip.
-  lora_rak11300_init();
-  lmh_setDevEui(nodeDeviceEUI);
+  // lora_rak11300_init();
+  // lmh_setDevEui(nodeDeviceEUI);
   // lmh_setAppEui(nodeAppEUI);
-  lmh_setAppKey(nodeAppKey);
+  // lmh_setAppKey(nodeAppKey);
 
-  uint32_t err_code = lmh_init(&lora_callbacks, lora_param_init, true, CLASS_A, LORAMAC_REGION_EU868);
-  if (err_code != 0)
-  {
-    Serial.printf("lmh_init failed - %d\n", err_code);
-    return;
-  }
+  // uint32_t err_code = lmh_init(&lora_callbacks, lora_param_init, true, CLASS_A, LORAMAC_REGION_EU868);
+  // if (err_code != 0)
+  //{
+  //    Serial.printf("lmh_init failed - %d\n", err_code);
+  // return;
+  //  }
 
   // Start Join procedure
-  lmh_join();
+  // lmh_join();
 }
 
 /**
@@ -111,10 +115,10 @@ float readVBAT(void)
   unsigned char i = 0;
   unsigned int adc_max = 0;
   unsigned int adc_min = 4095;
-  average_value = analogRead(PIN_VBAT);
+  average_value = analogRead(vbat_pin);
   for (i = 0; i < 10; i++)
   {
-    read_temp[i] = analogRead(PIN_VBAT);
+    read_temp[i] = analogRead(vbat_pin);
     if (read_temp[i] < adc_min)
     {
       adc_min = read_temp[i];
