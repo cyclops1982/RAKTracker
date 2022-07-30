@@ -8,43 +8,43 @@
 **/
 
 #include <Arduino.h>
-#include "LoRaWan-Arduino.h" //http://librarymanager/All#SX126x
-#include <SPI.h>
-#include <stdio.h>
-#include "mbed.h"
-#include "rtos.h"
+//#include "LoRaWan-Arduino.h" //http://librarymanager/All#SX126x
+//#include <SPI.h>
+//#include <stdio.h>
+//#include "mbed.h"
+//#include "rtos.h"
 
 #include <Wire.h>
 #include <vl53l0x_class.h>
 
 VL53L0X sensor_vl53l0x(&Wire, WB_IO2);
 
-uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x06, 0xBE, 0x44};
-uint8_t nodeAppEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-uint8_t nodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
+// uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x06, 0xBE, 0x44};
+// uint8_t nodeAppEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+// uint8_t nodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
 
-static void lorawan_has_joined_handler(void);
-static void lorawan_join_failed_handler(void);
-static void lorawan_rx_handler(lmh_app_data_t *app_data);
-static void lorawan_confirm_class_handler(DeviceClass_t Class);
-void lorawan_unconf_finished(void);
-void lorawan_conf_finished(bool result);
+// static void lorawan_has_joined_handler(void);
+// static void lorawan_join_failed_handler(void);
+// static void lorawan_rx_handler(lmh_app_data_t *app_data);
+// static void lorawan_confirm_class_handler(DeviceClass_t Class);
+// void lorawan_unconf_finished(void);
+// void lorawan_conf_finished(bool result);
 
-//#define SCHED_MAX_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum size of scheduler events. */
-//#define SCHED_QUEUE_SIZE 60                     /**< Maximum number of events in the scheduler queue. */
-#define LORAWAN_DATERATE DR_0       /*LoRaMac datarates definition, from DR_0 to DR_5*/
-#define LORAWAN_TX_POWER TX_POWER_5 /*LoRaMac tx power definition, from TX_POWER_0 to TX_POWER_15*/
-#define JOINREQ_NBTRIALS 3
-#define LORAWAN_APP_PORT 2
-#define LORAWAN_APP_DATA_BUFF_SIZE 64                                         /**< buffer size of the data to be transmitted. */
-static uint8_t m_lora_app_data_buffer[LORAWAN_APP_DATA_BUFF_SIZE];            //< Lora user application data buffer.
-static lmh_app_data_t m_lora_app_data = {m_lora_app_data_buffer, 0, 0, 0, 0}; //< Lora user application data structure.
+// //#define SCHED_MAX_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum size of scheduler events. */
+// //#define SCHED_QUEUE_SIZE 60                     /**< Maximum number of events in the scheduler queue. */
+// #define LORAWAN_DATERATE DR_0       /*LoRaMac datarates definition, from DR_0 to DR_5*/
+// #define LORAWAN_TX_POWER TX_POWER_5 /*LoRaMac tx power definition, from TX_POWER_0 to TX_POWER_15*/
+// #define JOINREQ_NBTRIALS 3
+// #define LORAWAN_APP_PORT 2
+// #define LORAWAN_APP_DATA_BUFF_SIZE 64                                         /**< buffer size of the data to be transmitted. */
+// static uint8_t m_lora_app_data_buffer[LORAWAN_APP_DATA_BUFF_SIZE];            //< Lora user application data buffer.
+// static lmh_app_data_t m_lora_app_data = {m_lora_app_data_buffer, 0, 0, 0, 0}; //< Lora user application data structure.
 
-static lmh_callback_t lora_callbacks = {BoardGetBatteryLevel, BoardGetUniqueId, BoardGetRandomSeed,
-                                        lorawan_rx_handler, lorawan_has_joined_handler, lorawan_confirm_class_handler,
-                                        lorawan_join_failed_handler, lorawan_unconf_finished, lorawan_conf_finished};
+// static lmh_callback_t lora_callbacks = {BoardGetBatteryLevel, BoardGetUniqueId, BoardGetRandomSeed,
+//                                         lorawan_rx_handler, lorawan_has_joined_handler, lorawan_confirm_class_handler,
+//                                         lorawan_join_failed_handler, lorawan_unconf_finished, lorawan_conf_finished};
 
-static lmh_param_t lora_param_init = {LORAWAN_ADR_ON, LORAWAN_DATERATE, LORAWAN_PUBLIC_NETWORK, JOINREQ_NBTRIALS, LORAWAN_TX_POWER, LORAWAN_DUTYCYCLE_OFF};
+// static lmh_param_t lora_param_init = {LORAWAN_ADR_ON, LORAWAN_DATERATE, LORAWAN_PUBLIC_NETWORK, JOINREQ_NBTRIALS, LORAWAN_TX_POWER, LORAWAN_DUTYCYCLE_OFF};
 
 #define PIN_VBAT WB_A0
 
@@ -74,10 +74,10 @@ void setup()
   // Configure VL53L0X component.
   sensor_vl53l0x.begin();
 
-  // Switch off VL53L0X component.
+  // // Switch off VL53L0X component.
   sensor_vl53l0x.VL53L0X_Off();
 
-  // Initialize VL53L0X component.
+  // // Initialize VL53L0X component.
   status = sensor_vl53l0x.InitSensor(0x52);
   if (status)
   {
@@ -86,7 +86,7 @@ void setup()
   // Something needed for the battery stuff
   analogReadResolution(12); // Can be 8, 10, 12 or 14
 
-  Serial.println("Going to setup lora");
+  Serial.println("Setup done");
   // Initialize LoRa chip.
   // lora_rak11300_init();
   // lmh_setDevEui(nodeDeviceEUI);
@@ -107,9 +107,8 @@ void setup()
 /**
  * @brief Get RAW Battery Voltage
  */
-float readVBAT(void)
+uint16_t readVBAT(void)
 {
-
   unsigned int sum = 0, average_value = 0;
   unsigned int read_temp[10] = {0};
   unsigned char i = 0;
@@ -130,14 +129,12 @@ float readVBAT(void)
     sum = sum + read_temp[i];
   }
   average_value = (sum - adc_max - adc_min) >> 3;
-  Serial.printf("The ADC value is:%d\r\n", average_value);
 
   // Convert the raw value to compensated mv, taking the resistor-
   // divider into account (providing the actual LIPO voltage)
   // ADC range is 0..3300mV and resolution is 12-bit (0..4095)
-  float volt = average_value * REAL_VBAT_MV_PER_LSB;
+  uint16_t volt = average_value * REAL_VBAT_MV_PER_LSB;
 
-  Serial.printf("The battery voltage is: %3.2f V\r\n", volt);
   return volt;
 }
 
@@ -146,7 +143,7 @@ float readVBAT(void)
  * @param mvolts
  *    RAW Battery Voltage
  */
-uint8_t mvToPercent(float mvolts)
+uint8_t mvToPercent(uint16_t mvolts)
 {
   if (mvolts < 3300)
     return 0;
@@ -164,7 +161,6 @@ uint8_t mvToPercent(float mvolts)
 uint16_t msgcount = 0;
 void loop()
 {
-  // Read Range.
   uint32_t distance;
   int status;
 
@@ -174,7 +170,7 @@ void loop()
   {
     // Output data.
     char report[64];
-    snprintf(report, sizeof(report), "| Distance [mm]: %ld |", distance);
+    snprintf(report, sizeof(report), "Distance: %ldmm", distance);
     Serial.println(report);
 
     if (distance < 50)
@@ -186,34 +182,29 @@ void loop()
       digitalWrite(LED_BUILTIN, LOW);
     }
 
-    float vbat_mv = readVBAT();
+    // if (lmh_join_status_get() != LMH_SET)
+    // {
+    //   Serial.println("We have not joined lora yet...");
+    //   return;
+    // }
 
-    // Convert from raw mv to percentage (based on LIPO chemistry)
-    uint8_t vbat_per = mvToPercent(vbat_mv);
+    // memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
+    // int size = 0;
+    // m_lora_app_data.port = 2;
+    // m_lora_app_data.buffer[size++] = 0x02; // device
+    // m_lora_app_data.buffer[size++] = 0x02; // msg version
 
-    if (lmh_join_status_get() != LMH_SET)
-    {
-      Serial.println("We have not joined lora yet...");
-      return;
-    }
+    // // bat voltage
+    // m_lora_app_data.buffer[size++] = 0;
+    // m_lora_app_data.buffer[size++] = 0;
+    // // distance
+    // uint16_t dist2 = distance;
+    // m_lora_app_data.buffer[size++] = dist2 >> 8;
+    // m_lora_app_data.buffer[size++] = dist2;
 
-    memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
-    int size = 0;
-    m_lora_app_data.port = 2;
-    m_lora_app_data.buffer[size++] = 0x02; // device
-    m_lora_app_data.buffer[size++] = 0x02; // msg version
-
-    // bat voltage
-    m_lora_app_data.buffer[size++] = 0;
-    m_lora_app_data.buffer[size++] = 0;
-    // distance
-    uint16_t dist2 = distance;
-    m_lora_app_data.buffer[size++] = dist2 >> 8;
-    m_lora_app_data.buffer[size++] = dist2;
-
-    m_lora_app_data.buffer[size++] = msgcount >> 8;
-    m_lora_app_data.buffer[size++] = msgcount;
-    m_lora_app_data.buffsize = size;
+    // m_lora_app_data.buffer[size++] = msgcount >> 8;
+    // m_lora_app_data.buffer[size++] = msgcount;
+    // m_lora_app_data.buffsize = size;
 
     // lmh_error_status error = lmh_send(&m_lora_app_data, LMH_CONFIRMED_MSG);
     // if (error == LMH_SUCCESS)
@@ -226,50 +217,56 @@ void loop()
     // }
     msgcount++;
   }
-  delay(5000);
+  uint16_t vbat_mv = readVBAT();
+
+  // Convert from raw mv to percentage (based on LIPO chemistry)
+  uint8_t vbat_per = mvToPercent(vbat_mv);
+  Serial.printf("percentage: %d uint: %d\r\n", vbat_per, vbat_mv);
+
+  delay(500);
 }
 
-void lorawan_has_joined_handler(void)
-{
+// void lorawan_has_joined_handler(void)
+// {
 
-  Serial.println("OTAA Mode, Network Joined!");
-  lmh_error_status ret = lmh_class_request(CLASS_A);
-  if (ret == LMH_SUCCESS)
-  {
-    Serial.printf("Class request status: %d\n", ret);
-  }
-}
+//   Serial.println("OTAA Mode, Network Joined!");
+//   lmh_error_status ret = lmh_class_request(CLASS_A);
+//   if (ret == LMH_SUCCESS)
+//   {
+//     Serial.printf("Class request status: %d\n", ret);
+//   }
+// }
 
-void lorawan_unconf_finished(void)
-{
-  Serial.println("TX finished");
-}
+// void lorawan_unconf_finished(void)
+// {
+//   Serial.println("TX finished");
+// }
 
-void lorawan_conf_finished(bool result)
-{
-  Serial.printf("Confirmed TX %s\n", result ? "success" : "failed");
-}
+// void lorawan_conf_finished(bool result)
+// {
+//   Serial.printf("Confirmed TX %s\n", result ? "success" : "failed");
+// }
 
-/**@brief LoRa function for handling OTAA join failed
- */
-static void lorawan_join_failed_handler(void)
-{
-  Serial.println("OTAA join failed!");
-  Serial.println("Check your EUI's and Keys's!");
-  Serial.println("Check if a Gateway is in range!");
-}
+// /**@brief LoRa function for handling OTAA join failed
+//  */
+// static void lorawan_join_failed_handler(void)
+// {
+//   Serial.println("OTAA join failed!");
+//   Serial.println("Check your EUI's and Keys's!");
+//   Serial.println("Check if a Gateway is in range!");
+// }
 
-void lorawan_rx_handler(lmh_app_data_t *app_data)
-{
-  Serial.printf("LoRa Packet received on port %d, size:%d, rssi:%d, snr:%d, data:%s\n",
-                app_data->port, app_data->buffsize, app_data->rssi, app_data->snr, app_data->buffer);
-}
+// void lorawan_rx_handler(lmh_app_data_t *app_data)
+// {
+//   Serial.printf("LoRa Packet received on port %d, size:%d, rssi:%d, snr:%d, data:%s\n",
+//                 app_data->port, app_data->buffsize, app_data->rssi, app_data->snr, app_data->buffer);
+// }
 
-void lorawan_confirm_class_handler(DeviceClass_t Class)
-{
-  Serial.printf("switch to class %c done\n", "ABC"[Class]);
-  // Informs the server that switch has occurred ASAP
-  m_lora_app_data.buffsize = 0;
-  m_lora_app_data.port = LORAWAN_APP_PORT;
-  lmh_send(&m_lora_app_data, LMH_CONFIRMED_MSG);
-}
+// void lorawan_confirm_class_handler(DeviceClass_t Class)
+// {
+//   Serial.printf("switch to class %c done\n", "ABC"[Class]);
+//   // Informs the server that switch has occurred ASAP
+//   m_lora_app_data.buffsize = 0;
+//   m_lora_app_data.port = LORAWAN_APP_PORT;
+//   lmh_send(&m_lora_app_data, LMH_CONFIRMED_MSG);
+// }
