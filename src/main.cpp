@@ -228,7 +228,7 @@ void loop()
   }
   msgcount++;
 
-  delay(30000);
+  delay(900000);
 }
 
 void lorawan_has_joined_handler(void)
