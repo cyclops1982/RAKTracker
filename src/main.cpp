@@ -8,18 +8,25 @@
 **/
 
 #include <Arduino.h>
-#include "LoRaWan-Arduino.h" //http://librarymanager/All#SX126x
+
 #include <SPI.h>
 #include <stdio.h>
+
+#include <LoRaWan-Arduino.h>
+
+#ifdef RAK11310
 #include "mbed.h"
 #include "rtos.h"
+#endif
 
 #include <Wire.h>
 #include <vl53l0x_class.h>
 
 VL53L0X sensor_vl53l0x(&Wire, WB_IO2);
 
-uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x06, 0xBE, 0x44};
+// uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x06, 0xBE, 0x44};
+uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
+
 uint8_t nodeAppEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 uint8_t nodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
 
@@ -66,7 +73,21 @@ void setup()
   int status;
 
   // Initialize serial for output.
+  time_t timeout = millis();
   Serial.begin(115200);
+  while (!Serial)
+  {
+    if ((millis() - timeout) < 5000)
+    {
+      delay(100);
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  delay(3000);
 
   // Initialize I2C bus.
   Wire.begin();
@@ -74,10 +95,10 @@ void setup()
   // Configure VL53L0X component.
   sensor_vl53l0x.begin();
 
-  // // Switch off VL53L0X component.
+  // Switch off VL53L0X component.
   sensor_vl53l0x.VL53L0X_Off();
 
-  // // Initialize VL53L0X component.
+  // Initialize VL53L0X component.
   status = sensor_vl53l0x.InitSensor(0x52);
   if (status)
   {
@@ -87,8 +108,12 @@ void setup()
   analogReadResolution(12); // Can be 8, 10, 12 or 14
 
   Serial.println("Setup done");
-  // Initialize LoRa chip.
+// Initialize LoRa chip.
+#ifdef RAK4630
+  lora_rak4630_init();
+#elif RAK11310
   lora_rak11300_init();
+#endif
   lmh_setDevEui(nodeDeviceEUI);
   lmh_setAppEui(nodeAppEUI);
   lmh_setAppKey(nodeAppKey);
@@ -196,6 +221,7 @@ void loop()
   if (lmh_join_status_get() != LMH_SET)
   {
     Serial.println("We have not joined lora yet...");
+    delay(1000);
     return;
   }
 
