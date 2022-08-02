@@ -8,19 +8,19 @@
 **/
 
 #include <Arduino.h>
-
 #include <SPI.h>
 #include <stdio.h>
-
 #include <LoRaWan-Arduino.h>
+#include <Wire.h>
+#include <vl53l0x_class.h>
+#include "batteryhelper.h"
 
 #ifdef RAK11310
 #include "mbed.h"
 #include "rtos.h"
 #endif
 
-#include <Wire.h>
-#include <vl53l0x_class.h>
+// #define MAX_SAVE
 
 VL53L0X sensor_vl53l0x(&Wire, WB_IO2);
 
@@ -53,28 +53,35 @@ static lmh_callback_t lora_callbacks = {BoardGetBatteryLevel, BoardGetUniqueId, 
 
 static lmh_param_t lora_param_init = {LORAWAN_ADR_ON, LORAWAN_DATERATE, LORAWAN_PUBLIC_NETWORK, JOINREQ_NBTRIALS, LORAWAN_TX_POWER, LORAWAN_DUTYCYCLE_OFF};
 
-#define PIN_VBAT WB_A0
-
-uint32_t vbat_pin = PIN_VBAT;
-
-#define VBAT_MV_PER_LSB (0.806F)   // 3.0V ADC range and 12 - bit ADC resolution = 3300mV / 4096
-#define VBAT_DIVIDER (0.6F)        // 1.5M + 1M voltage divider on VBAT = (1.5M / (1M + 1.5M))
-#define VBAT_DIVIDER_COMP (1.846F) //  // Compensation factor for the VBAT divider
-
-#define REAL_VBAT_MV_PER_LSB (VBAT_DIVIDER_COMP * VBAT_MV_PER_LSB)
+void errorblink()
+{
+  pinMode(LED_BLUE, OUTPUT);
+  digitalWrite(LED_BLUE, LOW);
+  while (1)
+  {
+    digitalWrite(LED_BLUE, HIGH);
+    delay(300);
+    digitalWrite(LED_BLUE, LOW);
+    delay(300);
+  }
+}
 
 void setup()
 {
+
   pinMode(WB_IO2, OUTPUT);
   digitalWrite(WB_IO2, HIGH);
+
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
 
   int status;
 
-  // Initialize serial for output.
+// Initialize serial for output.
+#ifndef MAX_SAVE
   time_t timeout = millis();
   Serial.begin(115200);
+  // check if serial has become available and if not, just wait for it.
   while (!Serial)
   {
     if ((millis() - timeout) < 5000)
@@ -87,8 +94,8 @@ void setup()
     }
   }
 
-  delay(3000);
-
+  delay(3000); // just wait 3 sec so we can plugin the connection or setup the serial session.
+#endif
   // Initialize I2C bus.
   Wire.begin();
 
@@ -102,12 +109,12 @@ void setup()
   status = sensor_vl53l0x.InitSensor(0x52);
   if (status)
   {
+#ifndef MAX_SAVE
     Serial.println("Init sensor_vl53l0x failed...");
+#endif
+    errorblink();
   }
-  // Something needed for the battery stuff
-  analogReadResolution(12); // Can be 8, 10, 12 or 14
 
-  Serial.println("Setup done");
 // Initialize LoRa chip.
 #ifdef RAK4630
   lora_rak4630_init();
@@ -127,60 +134,6 @@ void setup()
 
   // Start Join procedure
   lmh_join();
-}
-
-/**
- * @brief Get RAW Battery Voltage
- */
-uint16_t readVBAT(void)
-{
-  unsigned int sum = 0, average_value = 0;
-  unsigned int read_temp[10] = {0};
-  unsigned char i = 0;
-  unsigned int adc_max = 0;
-  unsigned int adc_min = 4095;
-  average_value = analogRead(vbat_pin);
-  for (i = 0; i < 10; i++)
-  {
-    read_temp[i] = analogRead(vbat_pin);
-    if (read_temp[i] < adc_min)
-    {
-      adc_min = read_temp[i];
-    }
-    if (read_temp[i] > adc_max)
-    {
-      adc_max = read_temp[i];
-    }
-    sum = sum + read_temp[i];
-  }
-  average_value = (sum - adc_max - adc_min) >> 3;
-
-  // Convert the raw value to compensated mv, taking the resistor-
-  // divider into account (providing the actual LIPO voltage)
-  // ADC range is 0..3300mV and resolution is 12-bit (0..4095)
-  uint16_t volt = average_value * REAL_VBAT_MV_PER_LSB;
-
-  return volt;
-}
-
-/**
- * @brief Convert from raw mv to percentage
- * @param mvolts
- *    RAW Battery Voltage
- */
-uint8_t mvToPercent(uint16_t mvolts)
-{
-  if (mvolts < 3300)
-    return 0;
-
-  if (mvolts < 3600)
-  {
-    mvolts -= 3300;
-    return mvolts / 30;
-  }
-
-  mvolts -= 3600;
-  return 10 + (mvolts * 0.15F); // thats mvolts /6.66666666
 }
 
 uint16_t msgcount = 0;
@@ -212,10 +165,10 @@ void loop()
     distance = 0;
   }
 
-  uint16_t vbat_mv = readVBAT();
+  uint16_t vbat_mv = BatteryHelper::readVBAT();
 
   // Convert from raw mv to percentage (based on LIPO chemistry)
-  uint8_t vbat_per = mvToPercent(vbat_mv);
+  uint8_t vbat_per = BatteryHelper::mvToPercent(vbat_mv);
   Serial.printf("percentage: %d uint: %d\r\n", vbat_per, vbat_mv);
 
   if (lmh_join_status_get() != LMH_SET)
