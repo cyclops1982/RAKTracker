@@ -17,7 +17,7 @@ public:
      * @brief Get RAW Battery Voltage
      * @return uint16_t minivolts in the battery.
      */
-    static uint16_t BatteryHelper::readVBAT(void);
+    static uint16_t readVBAT(void);
 
     /**
      * @brief Converts milivolts to a percentage
@@ -25,7 +25,7 @@ public:
      * @param mvolts
      * @return uint8_t The percentage of charge
      */
-    static uint8_t BatteryHelper::mvToPercent(uint16_t mvolts);
+    static uint8_t mvToPercent(uint16_t mvolts);
 
 private:
     BatteryHelper() {}
