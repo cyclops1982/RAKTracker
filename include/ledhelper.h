@@ -6,10 +6,9 @@
 class LedHelper
 {
 public:
-    LedHelper();
-    void BlinkHalt();
-
-private:
+    static void init();
+    static void BlinkHalt();
+    static void BlinkDelay(int ledpin, int delay);
+    static bool isInitialized;
 };
-
 #endif

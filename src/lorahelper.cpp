@@ -1,4 +1,5 @@
 #include "lorahelper.h"
+#include "ledhelper.h"
 
 // uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x06, 0xBE, 0x44};
 uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
@@ -76,9 +77,6 @@ void LoraHelper::InitAndJoin()
 
     while (lmh_join_status_get() != LMH_SET)
     {
-        digitalWrite(LED_GREEN, HIGH);
-        delay(100);
-        digitalWrite(LED_GREEN, LOW);
-        delay(100);
+        LedHelper::BlinkDelay(LED_BLUE, 100);
     }
 }

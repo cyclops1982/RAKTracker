@@ -15,12 +15,12 @@
 // #define MAX_SAVE
 
 VL53L0X sensor_vl53l0x(&Wire, WB_IO2);
-LedHelper leds;
 
 void setup()
 {
   pinMode(WB_IO2, OUTPUT);
   digitalWrite(WB_IO2, HIGH);
+  LedHelper::init();
 
   int status;
 
@@ -59,7 +59,7 @@ void setup()
 #ifndef MAX_SAVE
     Serial.println("Init sensor_vl53l0x failed...");
 #endif
-    leds.BlinkHalt();
+    // leds.BlinkHalt();
   }
 
   LoraHelper::InitAndJoin();
