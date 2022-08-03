@@ -35,35 +35,35 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "/home/cyclops/dev/RAK11300ArduinoExample/.pio/build/usbconnected/firmware.elf",
-            "projectEnvName": "usbconnected",
-            "toolchainBinDir": "/home/cyclops/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "executable": "/home/cyclops/dev/RAK11300ArduinoExample/.pio/build/wiscore_rak4631/firmware.elf",
+            "projectEnvName": "wiscore_rak4631",
+            "toolchainBinDir": "/home/cyclops/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "/home/cyclops/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd",
+            "svdPath": "/home/cyclops/.platformio/platforms/nordicnrf52/misc/svd/nrf52840.svd",
             "preLaunchTask": {
                 "type": "PlatformIO",
-                "task": "Pre-Debug (usbconnected)"
+                "task": "Pre-Debug (wiscore_rak4631)"
             }
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "/home/cyclops/dev/RAK11300ArduinoExample/.pio/build/usbconnected/firmware.elf",
-            "projectEnvName": "usbconnected",
-            "toolchainBinDir": "/home/cyclops/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "executable": "/home/cyclops/dev/RAK11300ArduinoExample/.pio/build/wiscore_rak4631/firmware.elf",
+            "projectEnvName": "wiscore_rak4631",
+            "toolchainBinDir": "/home/cyclops/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "/home/cyclops/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd"
+            "svdPath": "/home/cyclops/.platformio/platforms/nordicnrf52/misc/svd/nrf52840.svd"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "/home/cyclops/dev/RAK11300ArduinoExample/.pio/build/usbconnected/firmware.elf",
-            "projectEnvName": "usbconnected",
-            "toolchainBinDir": "/home/cyclops/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "executable": "/home/cyclops/dev/RAK11300ArduinoExample/.pio/build/wiscore_rak4631/firmware.elf",
+            "projectEnvName": "wiscore_rak4631",
+            "toolchainBinDir": "/home/cyclops/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "/home/cyclops/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd",
+            "svdPath": "/home/cyclops/.platformio/platforms/nordicnrf52/misc/svd/nrf52840.svd",
             "loadMode": "manual"
         }
     ]
