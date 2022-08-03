@@ -8,6 +8,7 @@ void LedHelper::init()
     {
         pinMode(LED_BLUE, OUTPUT);
         pinMode(LED_GREEN, OUTPUT);
+        delay(100);
         digitalWrite(LED_BLUE, LOW);
         digitalWrite(LED_GREEN, LOW);
         digitalWrite(LED_BLUE, HIGH);
