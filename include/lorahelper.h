@@ -28,7 +28,7 @@ private:
     LoraHelper(){};
 };
 
-static lmh_callback_t lora_callbacks = {BoardGetBatteryLevel,
+static lmh_callback_t lora_callbacks = {BatteryHelper::GetLoRaWanBattVal,
                                         BoardGetUniqueId,
                                         BoardGetRandomSeed,
                                         LoraHelper::lorawan_rx_handler,

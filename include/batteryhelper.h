@@ -27,6 +27,14 @@ public:
      */
     static uint8_t mvToPercent(uint16_t mvolts);
 
+    /**
+     * @brief Convert milvolts to 0..255 value.
+     *
+     * @param mvolts
+     * @return uint8_t
+     */
+    static uint8_t GetLoRaWanBattVal(void);
+
 private:
     BatteryHelper() {}
 };

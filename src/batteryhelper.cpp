@@ -59,3 +59,19 @@ uint8_t BatteryHelper::mvToPercent(uint16_t mvolts)
     mvolts -= 3600;
     return 10 + (mvolts * 0.15F); // thats mvolts /6.66666666
 }
+
+uint8_t BatteryHelper::GetLoRaWanBattVal()
+{
+    uint16_t mvolts = BatteryHelper::readVBAT();
+    if (mvolts < 3300)
+        return 0;
+
+    if (mvolts < 3600)
+    {
+        mvolts -= 3300;
+        return mvolts / 30 * 2.55;
+    }
+
+    mvolts -= 3600;
+    return (10 + (mvolts * 0.15F)) * 2.55;
+}
