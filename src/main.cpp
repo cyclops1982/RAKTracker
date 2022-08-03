@@ -1,26 +1,23 @@
-#include <Arduino.h>
-#include <SPI.h>
-#include <stdio.h>
-#include <Wire.h>
-#include <vl53l0x_class.h>
-#include "batteryhelper.h"
-#include "lorahelper.h"
-#include "ledhelper.h"
+#include "main.h"
 
-#ifdef RAK11310
-#include "mbed.h"
-#include "rtos.h"
-#endif
+SemaphoreHandle_t taskEvent = NULL;
+SoftwareTimer taskWakeupTimer;
 
-#define MAX_SAVE
+void periodicWakeup(TimerHandle_t unused)
+{
+  // Give the semaphore, so the loop task will wake up
+  xSemaphoreGiveFromISR(taskEvent, pdFALSE);
+}
 
 VL53L0X sensor_vl53l0x(&Wire, WB_IO2);
 
 void setup()
 {
   delay(3000); // For whatever reason, some pins/things are not available at startup right away. So we wait 3 seconds for stuff to warm up or something
-
   LedHelper::init();
+
+  taskEvent = xSemaphoreCreateBinary();
+  xSemaphoreGive(taskEvent);
 
   // Initialize serial for output.
 #ifndef MAX_SAVE
@@ -64,6 +61,8 @@ void setup()
   }
 
   LoraHelper::InitAndJoin();
+
+  xSemaphoreTake(taskEvent, 10); // TODO: Why 10?
 }
 
 uint16_t msgcount = 0;
@@ -72,57 +71,62 @@ void loop()
   uint32_t distance;
   int status;
 
-  status = sensor_vl53l0x.GetDistance(&distance);
-
-  if (status == VL53L0X_ERROR_NONE)
+  if (xSemaphoreTake(taskEvent, portMAX_DELAY) == pdTRUE)
   {
-    if (distance < 50)
+    // Switch on blue LED to show we are awake
+    digitalWrite(LED_BUILTIN, HIGH);
+
+    status = sensor_vl53l0x.GetDistance(&distance);
+
+    if (status == VL53L0X_ERROR_NONE)
     {
-      digitalWrite(LED_GREEN, HIGH);
+      if (distance < 50)
+      {
+        digitalWrite(LED_GREEN, HIGH);
+      }
+      else
+      {
+        digitalWrite(LED_GREEN, LOW);
+      }
     }
     else
     {
-      digitalWrite(LED_GREEN, LOW);
+      distance = 0;
     }
-  }
-  else
-  {
-    distance = 0;
-  }
 
-  uint16_t vbat_mv = BatteryHelper::readVBAT();
-  uint8_t vbat_per = BatteryHelper::mvToPercent(vbat_mv);
+    uint16_t vbat_mv = BatteryHelper::readVBAT();
+    uint8_t vbat_per = BatteryHelper::mvToPercent(vbat_mv);
 
-  memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
-  int size = 0;
-  m_lora_app_data.port = 2;
-  m_lora_app_data.buffer[size++] = 0x02; // device
-  m_lora_app_data.buffer[size++] = 0x02; // msg version
+    memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
+    int size = 0;
+    m_lora_app_data.port = 2;
+    m_lora_app_data.buffer[size++] = 0x02; // device
+    m_lora_app_data.buffer[size++] = 0x02; // msg version
 
-  // bat voltage
-  m_lora_app_data.buffer[size++] = vbat_mv >> 8;
-  m_lora_app_data.buffer[size++] = vbat_mv;
-  // distance
-  uint16_t dist2 = distance;
-  m_lora_app_data.buffer[size++] = dist2 >> 8;
-  m_lora_app_data.buffer[size++] = dist2;
+    // bat voltage
+    m_lora_app_data.buffer[size++] = vbat_mv >> 8;
+    m_lora_app_data.buffer[size++] = vbat_mv;
+    // distance
+    uint16_t dist2 = distance;
+    m_lora_app_data.buffer[size++] = dist2 >> 8;
+    m_lora_app_data.buffer[size++] = dist2;
 
-  m_lora_app_data.buffer[size++] = msgcount >> 8;
-  m_lora_app_data.buffer[size++] = msgcount;
-  m_lora_app_data.buffsize = size;
+    m_lora_app_data.buffer[size++] = msgcount >> 8;
+    m_lora_app_data.buffer[size++] = msgcount;
+    m_lora_app_data.buffsize = size;
 
-  lmh_error_status error = lmh_send(&m_lora_app_data, LMH_CONFIRMED_MSG);
+    lmh_error_status error = lmh_send(&m_lora_app_data, LMH_CONFIRMED_MSG);
 #ifndef MAX_SAVE
-  if (error == LMH_SUCCESS)
-  {
-    Serial.println("lmh_send ok");
-  }
-  else
-  {
-    Serial.printf("lmh_send failed: %d\n", error);
-  }
+    if (error == LMH_SUCCESS)
+    {
+      Serial.println("lmh_send ok");
+    }
+    else
+    {
+      Serial.printf("lmh_send failed: %d\n", error);
+    }
 #endif
-  msgcount++;
-
-  delay(300000);
+    msgcount++;
+  }
+  xSemaphoreTake(taskEvent, 10);
 }

@@ -15,6 +15,10 @@ void LoraHelper::lorawan_has_joined_handler(void)
     {
         Serial.printf("Class request status: %d\n", ret);
     }
+
+    // We start this time here, because now we're LoraJoined and we can sleep for a bit.
+    taskWakeupTimer.begin((1000 * 300), periodicWakeup);
+    taskWakeupTimer.start();
 }
 
 void LoraHelper::lorawan_unconf_finished(void)
