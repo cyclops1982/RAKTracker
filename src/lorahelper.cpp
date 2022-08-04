@@ -15,10 +15,6 @@ void LoraHelper::lorawan_has_joined_handler(void)
     {
         Serial.printf("Class request status: %d\n", ret);
     }
-
-    // We start this time here, because now we're LoraJoined and we can sleep for a bit.
-    taskWakeupTimer.begin((1000 * 300), periodicWakeup);
-    taskWakeupTimer.start();
 }
 
 void LoraHelper::lorawan_unconf_finished(void)
@@ -36,6 +32,7 @@ void LoraHelper::lorawan_join_failed_handler(void)
     Serial.println("OTAA join failed!");
     Serial.println("Check your EUI's and Keys's!");
     Serial.println("Check if a Gateway is in range!");
+    LedHelper::BlinkHalt();
 }
 
 void LoraHelper::lorawan_rx_handler(lmh_app_data_t *app_data)

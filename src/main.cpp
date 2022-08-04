@@ -1,15 +1,28 @@
-#include "main.h"
+#include <Arduino.h>
+#include <SPI.h>
+#include <stdio.h>
+#include <Wire.h>
+#include <vl53l0x_class.h>
+#include "batteryhelper.h"
+#include "lorahelper.h"
+#include "ledhelper.h"
+
+#ifdef RAK11310
+#include "mbed.h"
+#include "rtos.h"
+#endif
+
+#define MAX_SAVE
 
 SemaphoreHandle_t taskEvent = NULL;
 SoftwareTimer taskWakeupTimer;
+VL53L0X sensor_vl53l0x(&Wire, WB_IO2);
 
 void periodicWakeup(TimerHandle_t unused)
 {
   // Give the semaphore, so the loop task will wake up
   xSemaphoreGiveFromISR(taskEvent, pdFALSE);
 }
-
-VL53L0X sensor_vl53l0x(&Wire, WB_IO2);
 
 void setup()
 {
@@ -61,20 +74,18 @@ void setup()
   }
 
   LoraHelper::InitAndJoin();
-
-  xSemaphoreTake(taskEvent, 10); // TODO: Why 10?
+  taskWakeupTimer.begin((1000 * 300), periodicWakeup);
+  taskWakeupTimer.start();
 }
 
 uint16_t msgcount = 0;
 void loop()
 {
-  uint32_t distance;
-  int status;
-
   if (xSemaphoreTake(taskEvent, portMAX_DELAY) == pdTRUE)
   {
-    // Switch on blue LED to show we are awake
-    digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
+    uint32_t distance;
+    int status;
 
     status = sensor_vl53l0x.GetDistance(&distance);
 
@@ -115,7 +126,7 @@ void loop()
     m_lora_app_data.buffer[size++] = msgcount;
     m_lora_app_data.buffsize = size;
 
-    lmh_error_status error = lmh_send(&m_lora_app_data, LMH_CONFIRMED_MSG);
+    lmh_error_status error = lmh_send_blocking(&m_lora_app_data, LMH_CONFIRMED_MSG, 5000);
 #ifndef MAX_SAVE
     if (error == LMH_SUCCESS)
     {
@@ -127,6 +138,7 @@ void loop()
     }
 #endif
     msgcount++;
+    digitalWrite(LED_GREEN, LOW);
   }
   xSemaphoreTake(taskEvent, 10);
 }
