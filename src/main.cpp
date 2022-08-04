@@ -29,9 +29,6 @@ void setup()
   delay(3000); // For whatever reason, some pins/things are not available at startup right away. So we wait 3 seconds for stuff to warm up or something
   LedHelper::init();
 
-  taskEvent = xSemaphoreCreateBinary();
-  xSemaphoreGive(taskEvent);
-
   // Initialize serial for output.
 #ifndef MAX_SAVE
   time_t timeout = millis();
@@ -52,17 +49,9 @@ void setup()
   delay(3000); // just wait 3 sec so we can plugin the connection or setup the serial session.
 #endif
 
-  pinMode(WB_IO2, OUTPUT);
-  digitalWrite(WB_IO2, HIGH);
-
-  // Initialize I2C bus.
+  // Initialize the vl53l0x sensor.
   Wire.begin();
-
-  // Configure VL53L0X component.
   sensor_vl53l0x.begin();
-
-  // Switch off VL53L0X component.
-  sensor_vl53l0x.VL53L0X_Off();
 
   // Initialize VL53L0X component.
   if (sensor_vl53l0x.InitSensor(0x52) != VL53L0X_ERROR_NONE)
@@ -74,6 +63,9 @@ void setup()
   }
 
   LoraHelper::InitAndJoin();
+
+  taskEvent = xSemaphoreCreateBinary();
+  xSemaphoreGive(taskEvent);
   taskWakeupTimer.begin((1000 * 300), periodicWakeup);
   taskWakeupTimer.start();
 }
@@ -84,6 +76,7 @@ void loop()
   if (xSemaphoreTake(taskEvent, portMAX_DELAY) == pdTRUE)
   {
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
+    sensor_vl53l0x.VL53L0X_On();
     uint32_t distance;
     int status;
 
@@ -104,9 +97,8 @@ void loop()
     {
       distance = 0;
     }
-
+    sensor_vl53l0x.VL53L0X_Off();
     uint16_t vbat_mv = BatteryHelper::readVBAT();
-    uint8_t vbat_per = BatteryHelper::mvToPercent(vbat_mv);
 
     memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
     int size = 0;
