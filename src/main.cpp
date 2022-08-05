@@ -51,16 +51,6 @@ void setup()
 
   // Initialize the vl53l0x sensor.
   Wire.begin();
-  sensor_vl53l0x.begin();
-
-  // Initialize VL53L0X component.
-  if (sensor_vl53l0x.InitSensor(0x52) != VL53L0X_ERROR_NONE)
-  {
-#ifndef MAX_SAVE
-    Serial.println("Init sensor_vl53l0x failed...");
-#endif
-    LedHelper::BlinkHalt();
-  }
 
   LoraHelper::InitAndJoin();
 
@@ -76,7 +66,17 @@ void loop()
   if (xSemaphoreTake(taskEvent, portMAX_DELAY) == pdTRUE)
   {
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
-    sensor_vl53l0x.VL53L0X_On();
+    sensor_vl53l0x.begin();
+
+    // Initialize VL53L0X component.
+    if (sensor_vl53l0x.InitSensor(0x52) != VL53L0X_ERROR_NONE)
+    {
+#ifndef MAX_SAVE
+      Serial.println("Init sensor_vl53l0x failed...");
+#endif
+      LedHelper::BlinkHalt();
+    }
+
     uint32_t distance;
     int status;
 
@@ -98,6 +98,7 @@ void loop()
       distance = 0;
     }
     sensor_vl53l0x.VL53L0X_Off();
+    sensor_vl53l0x.end();
     uint16_t vbat_mv = BatteryHelper::readVBAT();
 
     memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
