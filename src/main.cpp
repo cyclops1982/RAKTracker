@@ -49,7 +49,7 @@ void setup()
   delay(3000); // just wait 3 sec so we can plugin the connection or setup the serial session.
 #endif
 
-  // Initialize the vl53l0x sensor.
+  // Setup/start the wire that we use for the Sensor.
   Wire.begin();
 
   LoraHelper::InitAndJoin();
