@@ -13,7 +13,8 @@
 #include "rtos.h"
 #endif
 
-#define MAX_SAVE
+//#define MAX_SAVE
+#define SLEEPTIME (1000 * 300)
 
 SemaphoreHandle_t g_taskEvent = NULL;
 SoftwareTimer g_taskWakeupTimer;
