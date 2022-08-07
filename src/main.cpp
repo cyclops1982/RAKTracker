@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <Wire.h>
 #include <vl53l0x_class.h>
+#include <SparkFun_Ublox_Arduino_Library.h>
 #include "batteryhelper.h"
 #include "lorahelper.h"
 #include "ledhelper.h"
@@ -142,15 +143,48 @@ void loop()
     {
       distance = 0;
     }
-    sensor_vl53l0x.VL53L0X_Off();
-    sensor_vl53l0x.end();
+    g_vl53l0x.VL53L0X_Off();
+    g_vl53l0x.end();
     uint16_t vbat_mv = BatteryHelper::readVBAT();
+    uint32_t gpsStart = millis();
+    byte gpsFixType = 0;
+    while (gpsFixType < 3 && (millis() - gpsStart < (1000 * 120)))
+    {
+      gpsFixType = g_GPS.getFixType(); // Get the fix type
+#ifndef MAX_SAVE
+      Serial.print(F("Fix: ")); // Print it
+      Serial.print(gpsFixType);
+      if (gpsFixType == 0)
+        Serial.print(F(" = No fix"));
+      else if (gpsFixType == 1)
+        Serial.print(F(" = Dead reckoning"));
+      else if (gpsFixType == 2)
+        Serial.print(F(" = 2D"));
+      else if (gpsFixType == 3)
+        Serial.print(F(" = 3D"));
+      else if (gpsFixType == 4)
+        Serial.print(F(" = GNSS + Dead reckoning"));
+      else if (gpsFixType == 5)
+        Serial.print(F(" = Time only"));
+      Serial.println();
+#endif
+      LedHelper::BlinkDelay(LED_BLUE, 500);
+    }
+    uint16_t gpsTime = millis() - gpsStart;
+    uint32_t gpsLat = g_GPS.getLatitude();
+    uint32_t gpsLong = g_GPS.getLongitude();
+    uint8_t gpsSats = g_GPS.getSIV();
+
+    g_GPS.powerOff(SLEEPTIME);
+#ifndef MAX_SAVE
+    Serial.printf("GPS details: GPStime: %dms; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d;\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong);
+#endif
 
     memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
     int size = 0;
     m_lora_app_data.port = 2;
     m_lora_app_data.buffer[size++] = 0x02; // device
-    m_lora_app_data.buffer[size++] = 0x02; // msg version
+    m_lora_app_data.buffer[size++] = 0x03; // msg version
 
     // bat voltage
     m_lora_app_data.buffer[size++] = vbat_mv >> 8;
@@ -160,8 +194,25 @@ void loop()
     m_lora_app_data.buffer[size++] = dist2 >> 8;
     m_lora_app_data.buffer[size++] = dist2;
 
-    m_lora_app_data.buffer[size++] = msgcount >> 8;
-    m_lora_app_data.buffer[size++] = msgcount;
+    m_lora_app_data.buffer[size++] = g_msgcount >> 8;
+    m_lora_app_data.buffer[size++] = g_msgcount;
+
+    m_lora_app_data.buffer[size++] = gpsTime >> 8;
+    m_lora_app_data.buffer[size++] = gpsTime;
+
+    m_lora_app_data.buffer[size++] = gpsSats;
+    m_lora_app_data.buffer[size++] = gpsFixType;
+
+    m_lora_app_data.buffer[size++] = gpsLat >> 24;
+    m_lora_app_data.buffer[size++] = gpsLat >> 16;
+    m_lora_app_data.buffer[size++] = gpsLat >> 8;
+    m_lora_app_data.buffer[size++] = gpsLat;
+
+    m_lora_app_data.buffer[size++] = gpsLong >> 24;
+    m_lora_app_data.buffer[size++] = gpsLong >> 16;
+    m_lora_app_data.buffer[size++] = gpsLong >> 8;
+    m_lora_app_data.buffer[size++] = gpsLong;
+
     m_lora_app_data.buffsize = size;
 
     lmh_error_status error = lmh_send_blocking(&m_lora_app_data, LMH_CONFIRMED_MSG, 5000);
