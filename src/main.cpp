@@ -14,14 +14,16 @@
 
 #define MAX_SAVE
 
-SemaphoreHandle_t taskEvent = NULL;
-SoftwareTimer taskWakeupTimer;
-VL53L0X sensor_vl53l0x(&Wire, WB_IO2);
+SemaphoreHandle_t g_taskEvent = NULL;
+SoftwareTimer g_taskWakeupTimer;
+VL53L0X g_vl53l0x(&Wire, WB_IO2);
+SFE_UBLOX_GPS g_GPS;
+uint16_t g_msgcount = 0;
 
 void periodicWakeup(TimerHandle_t unused)
 {
   // Give the semaphore, so the loop task will wake up
-  xSemaphoreGiveFromISR(taskEvent, pdFALSE);
+  xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
 }
 
 void setup()
@@ -52,27 +54,70 @@ void setup()
   // Setup/start the wire that we use for the Sensor.
   Wire.begin();
 
+  // Setup GPS pins
+  pinMode(WB_IO2, OUTPUT);
+  digitalWrite(WB_IO2, LOW);
+  delay(1000);
+  digitalWrite(WB_IO2, HIGH);
+  delay(1000);
+
+  if (g_GPS.begin() == false)
+  {
+#ifndef MAX_SAVE
+    Serial.println("Ublox GPS not detected at default I2C address. Please check wiring. Halting.");
+#endif
+    LedHelper::BlinkHalt();
+  }
+
+  g_GPS.setDynamicModel(DYN_MODEL_WRIST);
+  g_GPS.setI2COutput(COM_TYPE_UBX);
+
+  Serial.println(F("Waiting for a 3D fix..."));
+
+  byte gpsFixType = 0;
+
+  while (gpsFixType < 3)
+  {
+    gpsFixType = g_GPS.getFixType(); // Get the fix type
+    Serial.print(F("Fix: "));        // Print it
+    Serial.print(gpsFixType);
+    if (gpsFixType == 0)
+      Serial.print(F(" = No fix"));
+    else if (gpsFixType == 1)
+      Serial.print(F(" = Dead reckoning"));
+    else if (gpsFixType == 2)
+      Serial.print(F(" = 2D"));
+    else if (gpsFixType == 3)
+      Serial.print(F(" = 3D"));
+    else if (gpsFixType == 4)
+      Serial.print(F(" = GNSS + Dead reckoning"));
+    else if (gpsFixType == 5)
+      Serial.print(F(" = Time only"));
+    Serial.println();
+    LedHelper::BlinkDelay(LED_BLUE, 500);
+  }
+
   LoraHelper::InitAndJoin();
 
-  taskEvent = xSemaphoreCreateBinary();
-  xSemaphoreGive(taskEvent);
-  taskWakeupTimer.begin((1000 * 300), periodicWakeup);
-  taskWakeupTimer.start();
+  g_GPS.powerOff(SLEEPTIME);
+  g_taskEvent = xSemaphoreCreateBinary();
+  xSemaphoreGive(g_taskEvent);
+  g_taskWakeupTimer.begin(SLEEPTIME, periodicWakeup);
+  g_taskWakeupTimer.start();
 }
 
-uint16_t msgcount = 0;
 void loop()
 {
-  if (xSemaphoreTake(taskEvent, portMAX_DELAY) == pdTRUE)
+  if (xSemaphoreTake(g_taskEvent, portMAX_DELAY) == pdTRUE)
   {
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
-    sensor_vl53l0x.begin();
 
+    g_vl53l0x.begin();
     // Initialize VL53L0X component.
-    if (sensor_vl53l0x.InitSensor(0x52) != VL53L0X_ERROR_NONE)
+    if (g_vl53l0x.InitSensor(0x52) != VL53L0X_ERROR_NONE)
     {
 #ifndef MAX_SAVE
-      Serial.println("Init sensor_vl53l0x failed...");
+      Serial.println("Init g_vl53l0x failed...");
 #endif
       LedHelper::BlinkHalt();
     }
@@ -80,7 +125,7 @@ void loop()
     uint32_t distance;
     int status;
 
-    status = sensor_vl53l0x.GetDistance(&distance);
+    status = g_vl53l0x.GetDistance(&distance);
 
     if (status == VL53L0X_ERROR_NONE)
     {
@@ -130,8 +175,8 @@ void loop()
       Serial.printf("lmh_send failed: %d\n", error);
     }
 #endif
-    msgcount++;
+    g_msgcount++;
     digitalWrite(LED_GREEN, LOW);
   }
-  xSemaphoreTake(taskEvent, 10);
+  xSemaphoreTake(g_taskEvent, 10);
 }
