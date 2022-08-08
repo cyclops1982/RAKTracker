@@ -28,6 +28,28 @@ void periodicWakeup(TimerHandle_t unused)
   xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
 }
 
+uint16_t getDistance(void)
+{
+  g_vl53l0x.begin();
+  if (g_vl53l0x.InitSensor(0x52) != VL53L0X_ERROR_NONE)
+  {
+#ifndef MAX_SAVE
+    Serial.println("Init g_vl53l0x failed...");
+#endif
+    LedHelper::BlinkHalt();
+  }
+
+  uint32_t distance;
+
+  if (g_vl53l0x.GetDistance(&distance) != VL53L0X_ERROR_NONE)
+  {
+    distance = 0;
+  }
+  g_vl53l0x.VL53L0X_Off();
+  g_vl53l0x.end();
+  return distance;
+}
+
 void setup()
 {
   delay(3000); // For whatever reason, some pins/things are not available at startup right away. So we wait 3 seconds for stuff to warm up or something
@@ -114,42 +136,9 @@ void loop()
   {
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
 
-    g_vl53l0x.begin();
-    // Initialize VL53L0X component.
-    if (g_vl53l0x.InitSensor(0x52) != VL53L0X_ERROR_NONE)
-    {
-#ifndef MAX_SAVE
-      Serial.println("Init g_vl53l0x failed...");
-#endif
-      LedHelper::BlinkHalt();
-    }
-
-    uint32_t distance;
-    int status;
-
-    status = g_vl53l0x.GetDistance(&distance);
-
-    if (status == VL53L0X_ERROR_NONE)
-    {
-      if (distance < 50)
-      {
-        digitalWrite(LED_GREEN, HIGH);
-      }
-      else
-      {
-        digitalWrite(LED_GREEN, LOW);
-      }
-    }
-    else
-    {
-      distance = 0;
-    }
-    g_vl53l0x.VL53L0X_Off();
-    g_vl53l0x.end();
-    uint16_t vbat_mv = BatteryHelper::readVBAT();
     uint32_t gpsStart = millis();
     byte gpsFixType = 0;
-    while (gpsFixType < 3 && (millis() - gpsStart < (1000 * 120)))
+    while (gpsFixType < 3 && (millis() - gpsStart < (1000 * 90)))
     {
       gpsFixType = g_GPS.getFixType(); // Get the fix type
 #ifndef MAX_SAVE
@@ -181,6 +170,7 @@ void loop()
     Serial.printf("GPS details: GPStime: %dms; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d;\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong);
 #endif
 
+    // Create the lora message
     memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
     int size = 0;
     m_lora_app_data.port = 2;
@@ -188,12 +178,14 @@ void loop()
     m_lora_app_data.buffer[size++] = 0x03; // msg version
 
     // bat voltage
+    uint16_t vbat_mv = BatteryHelper::readVBAT();
     m_lora_app_data.buffer[size++] = vbat_mv >> 8;
     m_lora_app_data.buffer[size++] = vbat_mv;
+
     // distance
-    uint16_t dist2 = distance;
-    m_lora_app_data.buffer[size++] = dist2 >> 8;
-    m_lora_app_data.buffer[size++] = dist2;
+    uint16_t distance = getDistance();
+    m_lora_app_data.buffer[size++] = distance >> 8;
+    m_lora_app_data.buffer[size++] = distance;
 
     m_lora_app_data.buffer[size++] = g_msgcount >> 8;
     m_lora_app_data.buffer[size++] = g_msgcount;
