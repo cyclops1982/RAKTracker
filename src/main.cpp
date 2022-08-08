@@ -93,36 +93,13 @@ void setup()
     LedHelper::BlinkHalt();
   }
 
+  // Setup the GPS.
   g_GPS.setDynamicModel(DYN_MODEL_WRIST);
   g_GPS.setI2COutput(COM_TYPE_UBX);
 
-  Serial.println(F("Waiting for a 3D fix..."));
-
-  byte gpsFixType = 0;
-
-  while (gpsFixType < 3)
-  {
-    gpsFixType = g_GPS.getFixType(); // Get the fix type
-    Serial.print(F("Fix: "));        // Print it
-    Serial.print(gpsFixType);
-    if (gpsFixType == 0)
-      Serial.print(F(" = No fix"));
-    else if (gpsFixType == 1)
-      Serial.print(F(" = Dead reckoning"));
-    else if (gpsFixType == 2)
-      Serial.print(F(" = 2D"));
-    else if (gpsFixType == 3)
-      Serial.print(F(" = 3D"));
-    else if (gpsFixType == 4)
-      Serial.print(F(" = GNSS + Dead reckoning"));
-    else if (gpsFixType == 5)
-      Serial.print(F(" = Time only"));
-    Serial.println();
-    LedHelper::BlinkDelay(LED_BLUE, 500);
-  }
-
   LoraHelper::InitAndJoin();
 
+  // Go into sleep mode
   g_GPS.powerOff(SLEEPTIME);
   g_taskEvent = xSemaphoreCreateBinary();
   xSemaphoreGive(g_taskEvent);
