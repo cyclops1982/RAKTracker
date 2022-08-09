@@ -153,7 +153,7 @@ void loop()
     uint32_t gpsLat = g_GNSS.getLatitude();
     uint32_t gpsLong = g_GNSS.getLongitude();
     uint8_t gpsSats = g_GNSS.getSIV();
-    uint32_t gpsAltitudeMSL = g_GNSS.getAltitudeMSL();
+    int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
 
     // TODO: if we're still getting a no fix here, than should we really power off, or go into powersave mode so that it can try to get a fix during sleeptime?
     // g_GNSS.powerOffWithInterrupt((SLEEPTIME * 2), VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX);
@@ -193,8 +193,6 @@ void loop()
     m_lora_app_data.buffer[size++] = gpsLong >> 8;
     m_lora_app_data.buffer[size++] = gpsLong;
 
-    m_lora_app_data.buffer[size++] = gpsAltitudeMSL >> 24;
-    m_lora_app_data.buffer[size++] = gpsAltitudeMSL >> 16;
     m_lora_app_data.buffer[size++] = gpsAltitudeMSL >> 8;
     m_lora_app_data.buffer[size++] = gpsAltitudeMSL;
 
