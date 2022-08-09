@@ -30,16 +30,5 @@ private:
     LoraHelper(){};
 };
 
-static lmh_callback_t lora_callbacks = {BatteryHelper::GetLoRaWanBattVal,
-                                        BoardGetUniqueId,
-                                        BoardGetRandomSeed,
-                                        LoraHelper::lorawan_rx_handler,
-                                        LoraHelper::lorawan_has_joined_handler,
-                                        LoraHelper::lorawan_confirm_class_handler,
-                                        LoraHelper::lorawan_join_failed_handler,
-                                        LoraHelper::lorawan_unconf_finished,
-                                        LoraHelper::lorawan_conf_finished};
-
-static lmh_param_t lora_param_init = {LORAWAN_ADR_ON, LORAWAN_DATERATE, LORAWAN_PUBLIC_NETWORK, JOINREQ_NBTRIALS, LORAWAN_TX_POWER, LORAWAN_DUTYCYCLE_OFF};
 
 #endif

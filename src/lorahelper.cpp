@@ -6,6 +6,16 @@ uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
 uint8_t nodeAppEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 uint8_t nodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
 
+lmh_callback_t lora_callbacks = {BatteryHelper::GetLoRaWanBattVal,
+                                 BoardGetUniqueId,
+                                 BoardGetRandomSeed,
+                                 LoraHelper::lorawan_rx_handler,
+                                 LoraHelper::lorawan_has_joined_handler,
+                                 LoraHelper::lorawan_confirm_class_handler,
+                                 LoraHelper::lorawan_join_failed_handler,
+                                 LoraHelper::lorawan_unconf_finished,
+                                 LoraHelper::lorawan_conf_finished};
+
 void LoraHelper::lorawan_has_joined_handler(void)
 {
 
@@ -65,6 +75,8 @@ void LoraHelper::InitAndJoin()
     lmh_setDevEui(nodeDeviceEUI);
     lmh_setAppEui(nodeAppEUI);
     lmh_setAppKey(nodeAppKey);
+
+    lmh_param_t lora_param_init = {LORAWAN_ADR_ON, LORAWAN_DATERATE, LORAWAN_PUBLIC_NETWORK, JOINREQ_NBTRIALS, LORAWAN_TX_POWER, LORAWAN_DUTYCYCLE_OFF};
 
     uint32_t err_code = lmh_init(&lora_callbacks, lora_param_init, true, CLASS_A, LORAMAC_REGION_EU868);
     if (err_code != 0)

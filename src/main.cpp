@@ -198,15 +198,16 @@ void loop()
 
     m_lora_app_data.buffsize = size;
 
-    lmh_error_status error = lmh_send_blocking(&m_lora_app_data, LMH_CONFIRMED_MSG, 15000);
+    lmh_error_status loraSendState = LMH_BUSY;
+    loraSendState = lmh_send_blocking(&m_lora_app_data, LMH_CONFIRMED_MSG, 15000);
 #if !MAX_SAVE
-    if (error == LMH_SUCCESS)
+    if (loraSendState == LMH_SUCCESS)
     {
       Serial.println("lmh_send ok");
     }
     else
     {
-      Serial.printf("lmh_send failed: %d\n", error);
+      Serial.printf("lmh_send failed: %d\n", loraSendState);
     }
 #endif
     g_msgcount++;
