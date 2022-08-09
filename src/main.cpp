@@ -23,14 +23,14 @@ void periodicWakeup(TimerHandle_t unused)
   xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
 }
 
-// void wakeUpGNSS()
-// {
-//   digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, LOW);
-//   delay(1000);
-//   digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, HIGH);
-//   delay(1000);
-//   digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, LOW);
-// }
+void wakeUpGNSS()
+{
+  digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, LOW);
+  delay(1000);
+  digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, HIGH);
+  delay(1000);
+  digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, LOW);
+}
 
 uint16_t getDistance(void)
 {
@@ -55,7 +55,7 @@ uint16_t getDistance(void)
 
 void setup()
 {
-  delay(3000); // For whatever reason, some pins/things are not available at startup right away. So we wait 3 seconds for stuff to warm up or something
+  delay(1000); // For whatever reason, some pins/things are not available at startup right away. So we wait 3 seconds for stuff to warm up or something
   LedHelper::init();
   SERIAL_LOG("Setup start.");
   delay(1000);
@@ -81,12 +81,10 @@ void setup()
   // Setup/start the wire that we use for the Sensor.
   Wire.begin();
 
-  // Start up the GPS
+  // Put power onto the GNSS
   pinMode(WB_IO2, OUTPUT);
-  digitalWrite(WB_IO2, LOW);
-  delay(1000);
   digitalWrite(WB_IO2, HIGH);
-  delay(1000);
+  delay(100);
 
   if (g_GNSS.begin() == false)
   {
@@ -109,8 +107,6 @@ void setup()
   LoraHelper::InitAndJoin();
 
   // Go into sleep mode
-  // g_GNSS.powerOffWithInterrupt((SLEEPTIME * 2), VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX);
-  // g_GNSS.powerOff(SLEEPTIME);
   g_taskEvent = xSemaphoreCreateBinary();
   xSemaphoreGive(g_taskEvent);
   g_taskWakeupTimer.begin(SLEEPTIME, periodicWakeup);
@@ -124,7 +120,8 @@ void loop()
     SERIAL_LOG("Within loop...");
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
     //  Wake up the GNSS module and then do some other stuff (while that gets a fix)
-    //  wakeUpGNSS();
+    wakeUpGNSS();
+    uint16_t vbat_mv = BatteryHelper::readVBAT();
     uint32_t gpsStart = millis();
     byte gpsFixType = 0;
     while (gpsFixType != 3 && ((millis() - gpsStart) < (1000 * 300)))
@@ -155,12 +152,14 @@ void loop()
     uint8_t gpsSats = g_GNSS.getSIV();
     int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
 
-    // TODO: if we're still getting a no fix here, than should we really power off, or go into powersave mode so that it can try to get a fix during sleeptime?
-    // g_GNSS.powerOffWithInterrupt((SLEEPTIME * 2), VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX);
-    g_GNSS.powerOff(SLEEPTIME);
+    if (gpsFixType == 3)
+    {
+      g_GNSS.powerOffWithInterrupt((SLEEPTIME * 2), VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX);
+    }
+
     SERIAL_LOG("GPS details: GPStime: %dms; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d;\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong);
     uint16_t distance = getDistance();
-    uint16_t vbat_mv = BatteryHelper::readVBAT();
+
     // Create the lora message
     memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
     int size = 0;
@@ -198,7 +197,7 @@ void loop()
 
     m_lora_app_data.buffsize = size;
 
-    lmh_error_status loraSendState = LMH_BUSY;
+    lmh_error_status loraSendState = LMH_ERROR;
     loraSendState = lmh_send_blocking(&m_lora_app_data, LMH_CONFIRMED_MSG, 15000);
 #if !MAX_SAVE
     if (loraSendState == LMH_SUCCESS)
