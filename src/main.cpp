@@ -157,7 +157,7 @@ void loop()
 
     // TODO: if we're still getting a no fix here, than should we really power off, or go into powersave mode so that it can try to get a fix during sleeptime?
     // g_GNSS.powerOffWithInterrupt((SLEEPTIME * 2), VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX);
-    // g_GNSS.powerOff(SLEEPTIME);
+    g_GNSS.powerOff(SLEEPTIME);
     SERIAL_LOG("GPS details: GPStime: %dms; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d;\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong);
     uint16_t distance = getDistance();
     uint16_t vbat_mv = BatteryHelper::readVBAT();
