@@ -9,7 +9,7 @@
 #include "ledhelper.h"
 #include "serialhelper.h"
 
-#define SLEEPTIME (1000 * 300)
+#define SLEEPTIME (1000 * 60)
 
 SemaphoreHandle_t g_taskEvent = NULL;
 SoftwareTimer g_taskWakeupTimer;
@@ -21,15 +21,6 @@ void periodicWakeup(TimerHandle_t unused)
 {
   // Give the semaphore, so the loop task will wake up
   xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
-}
-
-void wakeUpGNSS()
-{
-  digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, LOW);
-  delay(100);
-  digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, HIGH);
-  delay(100);
-  digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, LOW);
 }
 
 uint16_t getDistance(void)
@@ -120,34 +111,28 @@ void loop()
   {
     SERIAL_LOG("Within loop...");
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
-    pinMode(WB_IO2, OUTPUT);
-    digitalWrite(WB_IO2, HIGH);
-    //   Wake up the GNSS module and then do some other stuff (while that gets a fix)
-    //  wakeUpGNSS();
     uint32_t gpsStart = millis();
-    uint16_t vbat_mv = BatteryHelper::readVBAT();
     byte gpsFixType = 0;
-    while (gpsFixType != 3 && ((millis() - gpsStart) < (1000 * 300)))
+    while (1)
     {
-      LedHelper::BlinkDelay(LED_BLUE, 250);
+      // LedHelper::BlinkDelay(LED_BLUE, 250);
       gpsFixType = g_GNSS.getFixType(); // Get the fix type
-#if !MAX_SAVE
-      Serial.print(F("Fix: ")); // Print it
-      Serial.print(gpsFixType);
-      if (gpsFixType == 0)
-        Serial.print(F(" = No fix"));
-      else if (gpsFixType == 1)
-        Serial.print(F(" = Dead reckoning"));
-      else if (gpsFixType == 2)
-        Serial.print(F(" = 2D"));
-      else if (gpsFixType == 3)
-        Serial.print(F(" = 3D"));
-      else if (gpsFixType == 4)
-        Serial.print(F(" = GNSS + Dead reckoning"));
-      else if (gpsFixType == 5)
-        Serial.print(F(" = Time only"));
-      Serial.println();
-#endif
+      bool gpsPVTresult = g_GNSS.getPVT();
+      SERIAL_LOG("PVT RESult: %d", gpsPVTresult);
+
+      if (gpsFixType == 3 && g_GNSS.getGnssFixOk())
+      {
+        SERIAL_LOG("FixType 3 and GnnsFixOK");
+        break;
+      }
+
+      if ((millis() - gpsStart) > (1000 * 300))
+      {
+        SERIAL_LOG("GNSS fix timeout");
+        break;
+      }
+
+      SERIAL_LOG("FIxType: %d", gpsFixType);
     }
     uint16_t gpsTime = millis() - gpsStart;
     uint32_t gpsLat = g_GNSS.getLatitude();
@@ -159,6 +144,9 @@ void loop()
     g_GNSS.powerOff(SLEEPTIME);
     SERIAL_LOG("GPS details: GPStime: %dms; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d;\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong);
 
+    uint16_t vbat_mv = BatteryHelper::readVBAT();
+    uint16_t distance = getDistance();
+
     // Create the lora message
     memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
     int size = 0;
@@ -168,7 +156,6 @@ void loop()
 
     m_lora_app_data.buffer[size++] = vbat_mv >> 8;
     m_lora_app_data.buffer[size++] = vbat_mv;
-    uint16_t distance = getDistance();
     m_lora_app_data.buffer[size++] = distance >> 8;
     m_lora_app_data.buffer[size++] = distance;
 
