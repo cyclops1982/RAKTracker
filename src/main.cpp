@@ -129,6 +129,7 @@ void loop()
     byte gpsFixType = 0;
     while (gpsFixType != 3 && ((millis() - gpsStart) < (1000 * 300)))
     {
+      LedHelper::BlinkDelay(LED_BLUE, 250);
       gpsFixType = g_GNSS.getFixType(); // Get the fix type
 #if !MAX_SAVE
       Serial.print(F("Fix: ")); // Print it
@@ -147,7 +148,6 @@ void loop()
         Serial.print(F(" = Time only"));
       Serial.println();
 #endif
-      LedHelper::BlinkDelay(LED_BLUE, 250);
     }
     uint16_t gpsTime = millis() - gpsStart;
     uint32_t gpsLat = g_GNSS.getLatitude();
