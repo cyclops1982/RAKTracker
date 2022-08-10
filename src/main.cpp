@@ -13,7 +13,6 @@
 
 SemaphoreHandle_t g_taskEvent = NULL;
 SoftwareTimer g_taskWakeupTimer;
-VL53L0X g_vl53l0x(&Wire, WB_IO2);
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
 
@@ -22,28 +21,6 @@ void periodicWakeup(TimerHandle_t unused)
   // Give the semaphore, so the loop task will wake up
   xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
 }
-
-uint16_t getDistance(void)
-{
-  g_vl53l0x.begin();
-  if (g_vl53l0x.InitSensor(0x52) != VL53L0X_ERROR_NONE)
-  {
-    SERIAL_LOG("Init g_vl53l0x failed...");
-    LedHelper::BlinkHalt();
-  }
-
-  uint32_t distance;
-  int status = g_vl53l0x.GetDistance(&distance);
-  if (status != VL53L0X_ERROR_NONE)
-  {
-    SERIAL_LOG("GetDistance produced error: %d", status)
-    distance = 0;
-  }
-  g_vl53l0x.VL53L0X_Off();
-  g_vl53l0x.end();
-  return distance;
-}
-
 void setup()
 {
   delay(1000); // For whatever reason, some pins/things are not available at startup right away. So we wait 3 seconds for stuff to warm up or something
@@ -111,13 +88,14 @@ void loop()
   {
     SERIAL_LOG("Within loop...");
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
+
     uint32_t gpsStart = millis();
     byte gpsFixType = 0;
     while (1)
     {
       // LedHelper::BlinkDelay(LED_BLUE, 250);
-      gpsFixType = g_GNSS.getFixType(); // Get the fix type
       bool gpsPVTresult = g_GNSS.getPVT();
+      gpsFixType = g_GNSS.getFixType(); // Get the fix type
       SERIAL_LOG("PVT RESult: %d", gpsPVTresult);
 
       if (gpsFixType == 3 && g_GNSS.getGnssFixOk())
@@ -140,12 +118,9 @@ void loop()
     uint8_t gpsSats = g_GNSS.getSIV();
     int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
 
-    // g_GNSS.powerOffWithInterrupt((SLEEPTIME * 2), VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX);
     g_GNSS.powerOff(SLEEPTIME);
     SERIAL_LOG("GPS details: GPStime: %dms; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d;\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong);
-
     uint16_t vbat_mv = BatteryHelper::readVBAT();
-    uint16_t distance = getDistance();
 
     // Create the lora message
     memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
@@ -156,8 +131,8 @@ void loop()
 
     m_lora_app_data.buffer[size++] = vbat_mv >> 8;
     m_lora_app_data.buffer[size++] = vbat_mv;
-    m_lora_app_data.buffer[size++] = distance >> 8;
-    m_lora_app_data.buffer[size++] = distance;
+    m_lora_app_data.buffer[size++] = 0;
+    m_lora_app_data.buffer[size++] = 0;
 
     m_lora_app_data.buffer[size++] = g_msgcount >> 8;
     m_lora_app_data.buffer[size++] = g_msgcount;
@@ -196,7 +171,6 @@ void loop()
     }
 #endif
     g_msgcount++;
-    // digitalWrite(WB_IO2, LOW); // turn off power to sensors
     digitalWrite(LED_GREEN, LOW);
   }
   xSemaphoreTake(g_taskEvent, 10);
