@@ -26,9 +26,9 @@ void periodicWakeup(TimerHandle_t unused)
 void wakeUpGNSS()
 {
   digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, LOW);
-  delay(1000);
+  delay(100);
   digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, HIGH);
-  delay(1000);
+  delay(100);
   digitalWrite(VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, LOW);
 }
 
@@ -60,6 +60,11 @@ void setup()
   SERIAL_LOG("Setup start.");
   delay(1000);
 
+  // Turn on power to sensors
+  pinMode(WB_IO2, OUTPUT);
+  digitalWrite(WB_IO2, HIGH);
+  delay(1000);
+
   // Initialize serial for output.
 #if !MAX_SAVE
   time_t timeout = millis();
@@ -81,11 +86,7 @@ void setup()
   // Setup/start the wire that we use for the Sensor.
   Wire.begin();
 
-  // Put power onto the GNSS
-  pinMode(WB_IO2, OUTPUT);
-  digitalWrite(WB_IO2, HIGH);
-  delay(100);
-
+  // Get all GPS stuff fired up
   if (g_GNSS.begin() == false)
   {
     SERIAL_LOG("Ublox GPS not detected at default I2C address. Please check wiring. Halting.");
@@ -96,14 +97,14 @@ void setup()
 
   while (g_GNSS.begin() == false) // Attempt to re-connect
   {
-    delay(1000);
+    delay(500);
     SERIAL_LOG("Attempting to re-connect to u-blox GNSS...");
   }
-  // Setup the GPS.
   g_GNSS.setDynamicModel(DYN_MODEL_WRIST);
   g_GNSS.setI2COutput(COM_TYPE_UBX);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
 
+  // Lora stuff
   LoraHelper::InitAndJoin();
 
   // Go into sleep mode
@@ -119,10 +120,12 @@ void loop()
   {
     SERIAL_LOG("Within loop...");
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
-    //  Wake up the GNSS module and then do some other stuff (while that gets a fix)
-    wakeUpGNSS();
-    uint16_t vbat_mv = BatteryHelper::readVBAT();
+    pinMode(WB_IO2, OUTPUT);
+    digitalWrite(WB_IO2, HIGH);
+    //   Wake up the GNSS module and then do some other stuff (while that gets a fix)
+    //  wakeUpGNSS();
     uint32_t gpsStart = millis();
+    uint16_t vbat_mv = BatteryHelper::readVBAT();
     byte gpsFixType = 0;
     while (gpsFixType != 3 && ((millis() - gpsStart) < (1000 * 300)))
     {
@@ -152,13 +155,9 @@ void loop()
     uint8_t gpsSats = g_GNSS.getSIV();
     int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
 
-    if (gpsFixType == 3)
-    {
-      g_GNSS.powerOffWithInterrupt((SLEEPTIME * 2), VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX);
-    }
-
+    // g_GNSS.powerOffWithInterrupt((SLEEPTIME * 2), VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX);
+    g_GNSS.powerOff(SLEEPTIME);
     SERIAL_LOG("GPS details: GPStime: %dms; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d;\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong);
-    uint16_t distance = getDistance();
 
     // Create the lora message
     memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
@@ -169,7 +168,7 @@ void loop()
 
     m_lora_app_data.buffer[size++] = vbat_mv >> 8;
     m_lora_app_data.buffer[size++] = vbat_mv;
-
+    uint16_t distance = getDistance();
     m_lora_app_data.buffer[size++] = distance >> 8;
     m_lora_app_data.buffer[size++] = distance;
 
@@ -210,6 +209,7 @@ void loop()
     }
 #endif
     g_msgcount++;
+    // digitalWrite(WB_IO2, LOW); // turn off power to sensors
     digitalWrite(LED_GREEN, LOW);
   }
   xSemaphoreTake(g_taskEvent, 10);

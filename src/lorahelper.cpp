@@ -66,6 +66,7 @@ void LoraHelper::lorawan_confirm_class_handler(DeviceClass_t Class)
 
 void LoraHelper::InitAndJoin()
 {
+    SERIAL_LOG("Init and Join LoraWAN");
     // Initialize LoRa chip.
 #ifdef RAK4630
     lora_rak4630_init();

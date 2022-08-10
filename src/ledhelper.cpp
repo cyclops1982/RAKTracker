@@ -61,5 +61,6 @@ void LedHelper::BlinkHalt()
             digitalWrite(LED_BLUE, LOW);
             delay(100);
         }
+        delay(500);
     }
 }
