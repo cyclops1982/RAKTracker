@@ -9,7 +9,7 @@
 #include "ledhelper.h"
 #include "serialhelper.h"
 
-#define SLEEPTIME (1000 * 60)
+#define SLEEPTIME (1000 * 60 * 4)
 
 SemaphoreHandle_t g_taskEvent = NULL;
 SoftwareTimer g_taskWakeupTimer;
@@ -60,7 +60,8 @@ void setup()
     SERIAL_LOG("Ublox GPS not detected at default I2C address. Please check wiring. Halting.");
     LedHelper::BlinkHalt();
   }
-  SERIAL_LOG("Resetting GNSS module");
+
+  SERIAL_LOG("Found GNSS with Protocol version: %d.%d", g_GNSS.getProtocolVersionHigh(), g_GNSS.getProtocolVersionLow());
   g_GNSS.factoryReset();
 
   while (g_GNSS.begin() == false) // Attempt to re-connect
@@ -71,7 +72,18 @@ void setup()
   g_GNSS.setDynamicModel(DYN_MODEL_WRIST);
   g_GNSS.setI2COutput(COM_TYPE_UBX);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
-  g_GNSS.powerSaveMode(true);
+  if (g_GNSS.powerSaveMode(true) == false)
+  {
+    SERIAL_LOG("POwerSave not supported, or couldn't be set.");
+  }
+
+  uint8_t powerSave = g_GNSS.getPowerSaveMode();
+  if (powerSave == 255)
+  {
+    SERIAL_LOG("Failed to go into powersave mode.");
+    LedHelper::BlinkHalt();
+  }
+  SERIAL_LOG("PowerSave on GNSS: %d", powerSave);
 
   // Lora stuff
   LoraHelper::InitAndJoin();
@@ -89,9 +101,13 @@ void loop()
   {
     SERIAL_LOG("Within loop...");
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
-    digitalWrite(WB_IO2, HIGH);    // turn on sensors
 
     uint32_t gpsStart = millis();
+    bool gpsPVTStatus = g_GNSS.getPVT();
+    while (!gpsPVTStatus)
+    {
+      gpsPVTStatus = g_GNSS.getPVT();
+    }
     byte gpsFixType = 0;
     while (1)
     {
@@ -118,12 +134,11 @@ void loop()
     uint8_t gpsSats = g_GNSS.getSIV();
     int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
 
-    g_GNSS.powerOff(SLEEPTIME * 2);
+    // g_GNSS.powerOff(SLEEPTIME * 2);
     SERIAL_LOG("GPS details: GPStime: %dms; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d;\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong);
     uint16_t vbat_mv = BatteryHelper::readVBAT();
 
     // We are done with the sensors, so we can turn them off
-    digitalWrite(WB_IO2, LOW);
 
     // Create the lora message
     memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
