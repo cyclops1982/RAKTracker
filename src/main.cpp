@@ -2,7 +2,6 @@
 #include <SPI.h>
 #include <stdio.h>
 #include <Wire.h>
-#include <vl53l0x_class.h>
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 #include "batteryhelper.h"
 #include "lorahelper.h"
@@ -31,6 +30,10 @@ void setup()
   // Turn on power to sensors
   pinMode(WB_IO2, OUTPUT);
   digitalWrite(WB_IO2, HIGH);
+  // interrupt pin for GNSS module
+  // pinMode(PIN_SERIAL2_RX, OUTPUT);
+  // digitalWrite(PIN_SERIAL2_RX, LOW);
+
   delay(1000);
 
   // Initialize serial for output.
@@ -63,6 +66,7 @@ void setup()
 
   SERIAL_LOG("Found GNSS with Protocol version: %d.%d", g_GNSS.getProtocolVersionHigh(), g_GNSS.getProtocolVersionLow());
   g_GNSS.factoryReset();
+  // g_GNSS.enableDebugging();
 
   while (g_GNSS.begin() == false) // Attempt to re-connect
   {
@@ -72,6 +76,10 @@ void setup()
   g_GNSS.setDynamicModel(DYN_MODEL_WRIST);
   g_GNSS.setI2COutput(COM_TYPE_UBX);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
+
+  // We should also disable SBAS and IMES via UBX-CFG-GNSS
+  // We should also turn of time-pulses via UBX-CFG-TP5
+  // We should be doing Power Save Mode ON/OFF (PSMOO) Operation
   if (g_GNSS.powerSaveMode(true) == false)
   {
     SERIAL_LOG("POwerSave not supported, or couldn't be set.");
@@ -84,6 +92,7 @@ void setup()
     LedHelper::BlinkHalt();
   }
   SERIAL_LOG("PowerSave on GNSS: %d", powerSave);
+  g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
 
   // Lora stuff
   LoraHelper::InitAndJoin();
@@ -101,12 +110,16 @@ void loop()
   {
     SERIAL_LOG("Within loop...");
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
+    // digitalWrite(PIN_SERIAL2_RX, HIGH);
+    // delay(1000);
+    // digitalWrite(PIN_SERIAL2_RX, LOW);
 
     uint32_t gpsStart = millis();
     bool gpsPVTStatus = g_GNSS.getPVT();
     while (!gpsPVTStatus)
     {
       gpsPVTStatus = g_GNSS.getPVT();
+      SERIAL_LOG("PVT result: %d", gpsPVTStatus);
     }
     byte gpsFixType = 0;
     while (1)
@@ -120,7 +133,7 @@ void loop()
         break;
       }
 
-      if ((millis() - gpsStart) > (1000 * 300))
+      if ((millis() - gpsStart) > (1000 * 120))
       {
         SERIAL_LOG("GNSS fix timeout");
         break;
@@ -134,7 +147,8 @@ void loop()
     uint8_t gpsSats = g_GNSS.getSIV();
     int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
 
-    // g_GNSS.powerOff(SLEEPTIME * 2);
+    g_GNSS.powerOff(SLEEPTIME);
+    //, VAL_RXM_PMREQ_WAKEUPSOURCE_UARTRX, true);
     SERIAL_LOG("GPS details: GPStime: %dms; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d;\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong);
     uint16_t vbat_mv = BatteryHelper::readVBAT();
 
