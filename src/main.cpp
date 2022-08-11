@@ -71,6 +71,7 @@ void setup()
   g_GNSS.setDynamicModel(DYN_MODEL_WRIST);
   g_GNSS.setI2COutput(COM_TYPE_UBX);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
+  g_GNSS.powerSaveMode(true);
 
   // Lora stuff
   LoraHelper::InitAndJoin();
@@ -88,15 +89,14 @@ void loop()
   {
     SERIAL_LOG("Within loop...");
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
+    digitalWrite(WB_IO2, HIGH);    // turn on sensors
 
     uint32_t gpsStart = millis();
     byte gpsFixType = 0;
     while (1)
     {
       // LedHelper::BlinkDelay(LED_BLUE, 250);
-      bool gpsPVTresult = g_GNSS.getPVT();
       gpsFixType = g_GNSS.getFixType(); // Get the fix type
-      SERIAL_LOG("PVT RESult: %d", gpsPVTresult);
 
       if (gpsFixType == 3 && g_GNSS.getGnssFixOk())
       {
@@ -118,9 +118,12 @@ void loop()
     uint8_t gpsSats = g_GNSS.getSIV();
     int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
 
-    g_GNSS.powerOff(SLEEPTIME);
+    g_GNSS.powerOff(SLEEPTIME * 2);
     SERIAL_LOG("GPS details: GPStime: %dms; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d;\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong);
     uint16_t vbat_mv = BatteryHelper::readVBAT();
+
+    // We are done with the sensors, so we can turn them off
+    digitalWrite(WB_IO2, LOW);
 
     // Create the lora message
     memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
