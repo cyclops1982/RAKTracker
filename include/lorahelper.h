@@ -12,8 +12,20 @@
 #define JOINREQ_NBTRIALS 3
 #define LORAWAN_APP_PORT 2
 #define LORAWAN_APP_DATA_BUFF_SIZE 64                                         /**< buffer size of the data to be transmitted. */
-static uint8_t m_lora_app_data_buffer[LORAWAN_APP_DATA_BUFF_SIZE];            //< Lora user application data buffer.
-static lmh_app_data_t m_lora_app_data = {m_lora_app_data_buffer, 0, 0, 0, 0}; //< Lora user application data structure.
+
+
+static uint8_t g_sendLoraDataBuffer[LORAWAN_APP_DATA_BUFF_SIZE];            //< Lora user application data buffer.
+static lmh_app_data_t g_SendLoraData = {g_sendLoraDataBuffer, 0, 0, 0, 0}; //< Lora user application data structure.
+static uint8_t g_rcvdLoRaData[256];
+static uint8_t g_rcvdDataLen;
+static SemaphoreHandle_t g_taskEvent = NULL;
+static enum EventTypeEnum
+{
+    None = -1,
+    LoraDataReceived = 1,
+    Timer = 2
+} g_EventType;
+
 
 class LoraHelper
 {
@@ -27,8 +39,11 @@ public:
     static void InitAndJoin();
 
 private:
-    LoraHelper(){};
+    LoraHelper()
+    {
+        SERIAL_LOG("INITIALIZING loraHelper")
+        g_taskEvent = xSemaphoreCreateBinary();
+    };
 };
-
 
 #endif

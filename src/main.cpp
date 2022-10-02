@@ -9,8 +9,6 @@
 #include "serialhelper.h"
 
 #define SLEEPTIME (1000 * 60 * 3)
-
-SemaphoreHandle_t g_taskEvent = NULL;
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
@@ -18,6 +16,7 @@ uint16_t g_msgcount = 0;
 void periodicWakeup(TimerHandle_t unused)
 {
   // Give the semaphore, so the loop task will wake up
+  g_EventType = EventTypeEnum::Timer;
   xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
 }
 void setup()
@@ -78,7 +77,7 @@ void setup()
   // We should be doing Power Save Mode ON/OFF (PSMOO) Operation
   if (g_GNSS.powerSaveMode(false) == false)
   {
-    SERIAL_LOG("POwerSave not supported, or couldn't be set.");
+    SERIAL_LOG("PowerSave not supported, or couldn't be set.");
   }
 
   uint8_t powerSave = g_GNSS.getPowerSaveMode();
@@ -94,116 +93,140 @@ void setup()
   LoraHelper::InitAndJoin();
 
   // Go into sleep mode
-  g_taskEvent = xSemaphoreCreateBinary();
+
   xSemaphoreGive(g_taskEvent);
   g_taskWakeupTimer.begin(SLEEPTIME, periodicWakeup);
   g_taskWakeupTimer.start();
 }
 
+void handleReceivedMessage()
+{
+}
+
+void doGPSFix()
+{
+  digitalWrite(WB_IO2, HIGH);
+  delay(1000);
+
+  uint32_t gpsStart = millis();
+  bool gpsPVTStatus = g_GNSS.getPVT();
+  while (!gpsPVTStatus)
+  {
+    gpsPVTStatus = g_GNSS.getPVT();
+    SERIAL_LOG("PVT result: %d", gpsPVTStatus);
+    delay(100);
+  }
+  byte gpsFixType = 0;
+  while (1)
+  {
+    // LedHelper::BlinkDelay(LED_BLUE, 250);
+    gpsFixType = g_GNSS.getFixType(); // Get the fix type
+
+    if (gpsFixType == 3 && g_GNSS.getGnssFixOk())
+    {
+      SERIAL_LOG("FixType 3 and GnnsFixOK");
+      break;
+    }
+    else
+    {
+      delay(100);
+    }
+
+    if ((millis() - gpsStart) > (1000 * 120))
+    {
+      SERIAL_LOG("GNSS fix timeout");
+      break;
+    }
+
+    SERIAL_LOG("FIxType: %d", gpsFixType);
+  }
+  uint32_t gpsTime = millis() - gpsStart;
+  uint32_t gpsLat = g_GNSS.getLatitude();
+  uint32_t gpsLong = g_GNSS.getLongitude();
+  uint8_t gpsSats = g_GNSS.getSIV();
+  int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
+
+  SERIAL_LOG("GPS details: GPStime: %ums; SATS: %d; FIXTYPE: %d; LAT: %u; LONG: %u; Alt: %d\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
+  uint16_t vbat_mv = BatteryHelper::readVBAT();
+
+  // Create the lora message
+  memset(g_SendLoraData.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
+  int size = 0;
+  g_SendLoraData.port = 2;
+  g_SendLoraData.buffer[size++] = 0x02; // device
+  g_SendLoraData.buffer[size++] = 0x03; // msg version
+
+  g_SendLoraData.buffer[size++] = vbat_mv >> 8;
+  g_SendLoraData.buffer[size++] = vbat_mv;
+  g_SendLoraData.buffer[size++] = 0;
+  g_SendLoraData.buffer[size++] = 0;
+
+  g_SendLoraData.buffer[size++] = g_msgcount >> 8;
+  g_SendLoraData.buffer[size++] = g_msgcount;
+  uint16_t gpsTimeThing = gpsTime;
+  SERIAL_LOG("GPS Time in packet: %d", gpsTimeThing);
+  g_SendLoraData.buffer[size++] = gpsTimeThing >> 8;
+  g_SendLoraData.buffer[size++] = gpsTimeThing;
+
+  g_SendLoraData.buffer[size++] = gpsSats;
+  g_SendLoraData.buffer[size++] = gpsFixType;
+
+  g_SendLoraData.buffer[size++] = gpsLat >> 24;
+  g_SendLoraData.buffer[size++] = gpsLat >> 16;
+  g_SendLoraData.buffer[size++] = gpsLat >> 8;
+  g_SendLoraData.buffer[size++] = gpsLat;
+
+  g_SendLoraData.buffer[size++] = gpsLong >> 24;
+  g_SendLoraData.buffer[size++] = gpsLong >> 16;
+  g_SendLoraData.buffer[size++] = gpsLong >> 8;
+  g_SendLoraData.buffer[size++] = gpsLong;
+
+  g_SendLoraData.buffer[size++] = gpsAltitudeMSL >> 8;
+  g_SendLoraData.buffer[size++] = gpsAltitudeMSL;
+
+  g_SendLoraData.buffsize = size;
+
+  lmh_error_status loraSendState = LMH_ERROR;
+  loraSendState = lmh_send_blocking(&g_SendLoraData, LMH_CONFIRMED_MSG, 15000);
+#if !MAX_SAVE
+  if (loraSendState == LMH_SUCCESS)
+  {
+    Serial.println("lmh_send ok");
+  }
+  else
+  {
+    Serial.printf("lmh_send failed: %d\n", loraSendState);
+  }
+#endif
+  // We are done with the sensors, so we can turn them off
+  digitalWrite(WB_IO2, LOW);
+
+  g_msgcount++;
+};
+
 void loop()
 {
   if (xSemaphoreTake(g_taskEvent, portMAX_DELAY) == pdTRUE)
   {
-    SERIAL_LOG("Within loop...");
+#if MAX_SAVE == false
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
-    digitalWrite(WB_IO2, HIGH);
-    delay(1000);
-
-    uint32_t gpsStart = millis();
-    bool gpsPVTStatus = g_GNSS.getPVT();
-    while (!gpsPVTStatus)
-    {
-      gpsPVTStatus = g_GNSS.getPVT();
-      SERIAL_LOG("PVT result: %d", gpsPVTStatus);
-      delay(100);
-    }
-    byte gpsFixType = 0;
-    while (1)
-    {
-      // LedHelper::BlinkDelay(LED_BLUE, 250);
-      gpsFixType = g_GNSS.getFixType(); // Get the fix type
-
-      if (gpsFixType == 3 && g_GNSS.getGnssFixOk())
-      {
-        SERIAL_LOG("FixType 3 and GnnsFixOK");
-        break;
-      }
-      else
-      {
-        delay(100);
-      }
-
-      if ((millis() - gpsStart) > (1000 * 120))
-      {
-        SERIAL_LOG("GNSS fix timeout");
-        break;
-      }
-
-      SERIAL_LOG("FIxType: %d", gpsFixType);
-    }
-    uint32_t gpsTime = millis() - gpsStart;
-    uint32_t gpsLat = g_GNSS.getLatitude();
-    uint32_t gpsLong = g_GNSS.getLongitude();
-    uint8_t gpsSats = g_GNSS.getSIV();
-    int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
-
-    SERIAL_LOG("GPS details: GPStime: %ums; SATS: %d; FIXTYPE: %d; LAT: %u; LONG: %u; Alt: %d\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
-    uint16_t vbat_mv = BatteryHelper::readVBAT();
-
-    // Create the lora message
-    memset(m_lora_app_data.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
-    int size = 0;
-    m_lora_app_data.port = 2;
-    m_lora_app_data.buffer[size++] = 0x02; // device
-    m_lora_app_data.buffer[size++] = 0x03; // msg version
-
-    m_lora_app_data.buffer[size++] = vbat_mv >> 8;
-    m_lora_app_data.buffer[size++] = vbat_mv;
-    m_lora_app_data.buffer[size++] = 0;
-    m_lora_app_data.buffer[size++] = 0;
-
-    m_lora_app_data.buffer[size++] = g_msgcount >> 8;
-    m_lora_app_data.buffer[size++] = g_msgcount;
-    uint16_t gpsTimeThing = gpsTime;
-    SERIAL_LOG("GPS Time in packet: %d", gpsTimeThing);
-    m_lora_app_data.buffer[size++] = gpsTimeThing >> 8;
-    m_lora_app_data.buffer[size++] = gpsTimeThing;
-
-    m_lora_app_data.buffer[size++] = gpsSats;
-    m_lora_app_data.buffer[size++] = gpsFixType;
-
-    m_lora_app_data.buffer[size++] = gpsLat >> 24;
-    m_lora_app_data.buffer[size++] = gpsLat >> 16;
-    m_lora_app_data.buffer[size++] = gpsLat >> 8;
-    m_lora_app_data.buffer[size++] = gpsLat;
-
-    m_lora_app_data.buffer[size++] = gpsLong >> 24;
-    m_lora_app_data.buffer[size++] = gpsLong >> 16;
-    m_lora_app_data.buffer[size++] = gpsLong >> 8;
-    m_lora_app_data.buffer[size++] = gpsLong;
-
-    m_lora_app_data.buffer[size++] = gpsAltitudeMSL >> 8;
-    m_lora_app_data.buffer[size++] = gpsAltitudeMSL;
-
-    m_lora_app_data.buffsize = size;
-
-    lmh_error_status loraSendState = LMH_ERROR;
-    loraSendState = lmh_send_blocking(&m_lora_app_data, LMH_CONFIRMED_MSG, 15000);
-#if !MAX_SAVE
-    if (loraSendState == LMH_SUCCESS)
-    {
-      Serial.println("lmh_send ok");
-    }
-    else
-    {
-      Serial.printf("lmh_send failed: %d\n", loraSendState);
-    }
 #endif
-    g_msgcount++;
+    switch (g_EventType)
+    {
+    case EventTypeEnum::LoraDataReceived:
+      handleReceivedMessage();
+      break;
 
-    // We are done with the sensors, so we can turn them off
-    digitalWrite(WB_IO2, LOW);
+    case EventTypeEnum::Timer:
+    case EventTypeEnum::None:
+    default:
+      doGPSFix();
+      break;
+    };
+
+#if MAX_SAVE == false
     digitalWrite(LED_GREEN, LOW);
+#endif
   }
   xSemaphoreTake(g_taskEvent, 10);
 }

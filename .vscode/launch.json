@@ -35,11 +35,11 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "/home/cyclops/dev/RAKTracker/.pio/build/wiscore_rak4631/firmware.elf",
+            "executable": "/Users/cyclops/dev/RAKTracker/.pio/build/wiscore_rak4631/firmware.elf",
             "projectEnvName": "wiscore_rak4631",
-            "toolchainBinDir": "/home/cyclops/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
+            "toolchainBinDir": "/Users/cyclops/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "/home/cyclops/.platformio/platforms/nordicnrf52/misc/svd/nrf52840.svd",
+            "svdPath": "/Users/cyclops/.platformio/platforms/nordicnrf52/misc/svd/nrf52840.svd",
             "preLaunchTask": {
                 "type": "PlatformIO",
                 "task": "Pre-Debug (wiscore_rak4631)"
@@ -49,21 +49,21 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "/home/cyclops/dev/RAKTracker/.pio/build/wiscore_rak4631/firmware.elf",
+            "executable": "/Users/cyclops/dev/RAKTracker/.pio/build/wiscore_rak4631/firmware.elf",
             "projectEnvName": "wiscore_rak4631",
-            "toolchainBinDir": "/home/cyclops/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
+            "toolchainBinDir": "/Users/cyclops/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "/home/cyclops/.platformio/platforms/nordicnrf52/misc/svd/nrf52840.svd"
+            "svdPath": "/Users/cyclops/.platformio/platforms/nordicnrf52/misc/svd/nrf52840.svd"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "/home/cyclops/dev/RAKTracker/.pio/build/wiscore_rak4631/firmware.elf",
+            "executable": "/Users/cyclops/dev/RAKTracker/.pio/build/wiscore_rak4631/firmware.elf",
             "projectEnvName": "wiscore_rak4631",
-            "toolchainBinDir": "/home/cyclops/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
+            "toolchainBinDir": "/Users/cyclops/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "/home/cyclops/.platformio/platforms/nordicnrf52/misc/svd/nrf52840.svd",
+            "svdPath": "/Users/cyclops/.platformio/platforms/nordicnrf52/misc/svd/nrf52840.svd",
             "loadMode": "manual"
         }
     ]

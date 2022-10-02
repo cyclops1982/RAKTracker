@@ -53,21 +53,59 @@ void LoraHelper::lorawan_rx_handler(lmh_app_data_t *app_data)
                app_data->rssi,
                app_data->snr,
                app_data->buffer);
+
+    switch (app_data->port)
+    {
+    case 3:
+        // Port 3 switches the class
+        if (app_data->buffsize == 1)
+        {
+            switch (app_data->buffer[0])
+            {
+            case 0:
+                lmh_class_request(CLASS_A);
+                SERIAL_LOG("Request to switch to class A");
+                break;
+
+            case 1:
+                lmh_class_request(CLASS_B);
+                SERIAL_LOG("Request to switch to class B");
+                break;
+
+            case 2:
+                lmh_class_request(CLASS_C);
+                SERIAL_LOG("Request to switch to class C");
+                break;
+
+            default:
+                SERIAL_LOG("Failed to intepret appdata port 3 data.");
+                break;
+            }
+        }
+        break;
+    case LORAWAN_APP_PORT:
+        // Copy the data into loop data buffer
+        memcpy(g_rcvdLoRaData, app_data->buffer, app_data->buffsize);
+        g_rcvdDataLen = app_data->buffsize;
+
+        g_EventType = EventTypeEnum::LoraDataReceived;
+        xSemaphoreGive(g_taskEvent);
+        break;
+    }
 }
 
 void LoraHelper::lorawan_confirm_class_handler(DeviceClass_t Class)
 {
     SERIAL_LOG("switch to class %c done\n", "ABC"[Class]);
     // Informs the server that switch has occurred ASAP
-    m_lora_app_data.buffsize = 0;
-    m_lora_app_data.port = LORAWAN_APP_PORT;
-    lmh_send(&m_lora_app_data, LMH_CONFIRMED_MSG);
+    g_SendLoraData.buffsize = 0;
+    g_SendLoraData.port = LORAWAN_APP_PORT;
+    lmh_send(&g_SendLoraData, LMH_CONFIRMED_MSG);
 }
 
 void LoraHelper::InitAndJoin()
 {
     SERIAL_LOG("Init and Join LoraWAN");
-    // Initialize LoRa chip.
 #ifdef RAK4630
     lora_rak4630_init();
 #elif RAK11310
