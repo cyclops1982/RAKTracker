@@ -7,7 +7,8 @@
 #include "serialhelper.h"
 #include "main.h"
 
-#define SLEEPTIME (1000 * 30 * 1)
+
+uint32_t g_sleeptime = 180000UL;
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
@@ -102,7 +103,7 @@ void setup()
   g_taskEvent = xSemaphoreCreateBinary();
   xSemaphoreGive(g_taskEvent);
   g_EventType = 1;
-  g_taskWakeupTimer.begin(SLEEPTIME, periodicWakeup);
+  g_taskWakeupTimer.begin(g_sleeptime, periodicWakeup);
   g_taskWakeupTimer.start();
 }
 
@@ -111,9 +112,17 @@ void handleReceivedMessage()
   SERIAL_LOG("RECEIVED LORA DATA: %d", g_rcvdDataLen)
   for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
-    char hexstr[2];
+    char hexstr[3];
     sprintf(hexstr, "%02x", g_rcvdLoRaData[i]);
     SERIAL_LOG(hexstr);
+  }
+
+  if (g_rcvdLoRaData[0] == 01) {
+    g_sleeptime = g_rcvdLoRaData[1] * 1000;
+    SERIAL_LOG("Resetting sleeptime to:%d", g_sleeptime)
+    g_taskWakeupTimer.stop();
+    g_taskWakeupTimer.begin(g_sleeptime, periodicWakeup);
+    g_taskWakeupTimer.start();
   }
 }
 
@@ -153,7 +162,7 @@ void doGPSFix()
       break;
     }
 
-    SERIAL_LOG("FIxType: %d", gpsFixType);
+    SERIAL_LOG("FixType: %d", gpsFixType);
   }
   uint32_t gpsTime = millis() - gpsStart;
   uint32_t gpsLat = g_GNSS.getLatitude();
