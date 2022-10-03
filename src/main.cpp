@@ -1,5 +1,3 @@
-#include <Arduino.h>
-#include <SPI.h>
 #include <stdio.h>
 #include <Wire.h>
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
@@ -7,16 +5,24 @@
 #include "lorahelper.h"
 #include "ledhelper.h"
 #include "serialhelper.h"
+#include "main.h"
 
-#define SLEEPTIME (1000 * 60 * 3)
+#define SLEEPTIME (1000 * 30 * 1)
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
 
+
+SemaphoreHandle_t g_taskEvent = NULL;
+uint8_t g_EventType = -1;
+uint8_t g_rcvdLoRaData[LORAWAN_BUFFER_SIZE];
+uint8_t g_rcvdDataLen = 0;
+
+
 void periodicWakeup(TimerHandle_t unused)
 {
   // Give the semaphore, so the loop task will wake up
-  g_EventType = EventTypeEnum::Timer;
+  g_EventType = 1;
   xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
 }
 void setup()
@@ -93,20 +99,29 @@ void setup()
   LoraHelper::InitAndJoin();
 
   // Go into sleep mode
-
+  g_taskEvent = xSemaphoreCreateBinary();
   xSemaphoreGive(g_taskEvent);
+  g_EventType = 1;
   g_taskWakeupTimer.begin(SLEEPTIME, periodicWakeup);
   g_taskWakeupTimer.start();
 }
 
 void handleReceivedMessage()
 {
+  SERIAL_LOG("RECEIVED LORA DATA: %d", g_rcvdDataLen)
+  for (uint8_t i = 0; i < g_rcvdDataLen; i++)
+  {
+    char hexstr[2];
+    sprintf(hexstr, "%02x", g_rcvdLoRaData[i]);
+    SERIAL_LOG(hexstr);
+  }
 }
 
 void doGPSFix()
 {
+  SERIAL_LOG("Doing GPSFix");
   digitalWrite(WB_IO2, HIGH);
-  delay(1000);
+  delay(500);
 
   uint32_t gpsStart = millis();
   bool gpsPVTStatus = g_GNSS.getPVT();
@@ -148,9 +163,12 @@ void doGPSFix()
 
   SERIAL_LOG("GPS details: GPStime: %ums; SATS: %d; FIXTYPE: %d; LAT: %u; LONG: %u; Alt: %d\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
   uint16_t vbat_mv = BatteryHelper::readVBAT();
+  
+  // We are done with the sensors, so we can turn them off
+  digitalWrite(WB_IO2, LOW);
 
   // Create the lora message
-  memset(g_SendLoraData.buffer, 0, LORAWAN_APP_DATA_BUFF_SIZE);
+  memset(g_SendLoraData.buffer, 0, LORAWAN_BUFFER_SIZE);
   int size = 0;
   g_SendLoraData.port = 2;
   g_SendLoraData.buffer[size++] = 0x02; // device
@@ -187,7 +205,7 @@ void doGPSFix()
   g_SendLoraData.buffsize = size;
 
   lmh_error_status loraSendState = LMH_ERROR;
-  loraSendState = lmh_send_blocking(&g_SendLoraData, LMH_CONFIRMED_MSG, 15000);
+  loraSendState = lmh_send(&g_SendLoraData, LMH_CONFIRMED_MSG);
 #if !MAX_SAVE
   if (loraSendState == LMH_SUCCESS)
   {
@@ -198,8 +216,7 @@ void doGPSFix()
     Serial.printf("lmh_send failed: %d\n", loraSendState);
   }
 #endif
-  // We are done with the sensors, so we can turn them off
-  digitalWrite(WB_IO2, LOW);
+
 
   g_msgcount++;
 };
@@ -211,16 +228,19 @@ void loop()
 #if MAX_SAVE == false
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
 #endif
+    SERIAL_LOG("Semaphore going: %d", g_EventType);
     switch (g_EventType)
     {
-    case EventTypeEnum::LoraDataReceived:
+    case 2:
       handleReceivedMessage();
       break;
 
-    case EventTypeEnum::Timer:
-    case EventTypeEnum::None:
-    default:
+    case 1:
       doGPSFix();
+      break;
+      
+    default:
+      SERIAL_LOG("In loop, but without correct g_EventType")
       break;
     };
 

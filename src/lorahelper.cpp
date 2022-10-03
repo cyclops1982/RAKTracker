@@ -1,5 +1,6 @@
 #include "lorahelper.h"
 #include "ledhelper.h"
+#include "main.h"
 
 // uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x06, 0xBE, 0x44};
 uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
@@ -20,7 +21,7 @@ void LoraHelper::lorawan_has_joined_handler(void)
 {
 
     SERIAL_LOG("OTAA Mode, Network Joined!");
-    lmh_error_status ret = lmh_class_request(CLASS_A);
+    lmh_error_status ret = lmh_class_request(LORAWAN_CLASS);
     if (ret == LMH_SUCCESS)
     {
         SERIAL_LOG("Class request status: %d\n", ret);
@@ -63,18 +64,18 @@ void LoraHelper::lorawan_rx_handler(lmh_app_data_t *app_data)
             switch (app_data->buffer[0])
             {
             case 0:
-                lmh_class_request(CLASS_A);
                 SERIAL_LOG("Request to switch to class A");
+                lmh_class_request(CLASS_A);
                 break;
 
             case 1:
-                lmh_class_request(CLASS_B);
                 SERIAL_LOG("Request to switch to class B");
+                lmh_class_request(CLASS_B);
                 break;
 
             case 2:
-                lmh_class_request(CLASS_C);
                 SERIAL_LOG("Request to switch to class C");
+                lmh_class_request(CLASS_C);
                 break;
 
             default:
@@ -84,12 +85,21 @@ void LoraHelper::lorawan_rx_handler(lmh_app_data_t *app_data)
         }
         break;
     case LORAWAN_APP_PORT:
+        SERIAL_LOG("RECEIVED LORA DATA");
         // Copy the data into loop data buffer
         memcpy(g_rcvdLoRaData, app_data->buffer, app_data->buffsize);
         g_rcvdDataLen = app_data->buffsize;
 
-        g_EventType = EventTypeEnum::LoraDataReceived;
-        xSemaphoreGive(g_taskEvent);
+        g_EventType = 2;
+
+        if (g_taskEvent != NULL)
+        {
+            SERIAL_LOG("Waking up loop task: %d", g_EventType);
+            xSemaphoreGive(g_taskEvent);
+        }
+        break;
+    default:
+        SERIAL_LOG("Received lora data on unsupported PORT");
         break;
     }
 }

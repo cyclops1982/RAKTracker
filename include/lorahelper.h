@@ -11,21 +11,14 @@
 #define LORAWAN_TX_POWER TX_POWER_5 /*LoRaMac tx power definition, from TX_POWER_0 to TX_POWER_15*/
 #define JOINREQ_NBTRIALS 3
 #define LORAWAN_APP_PORT 2
-#define LORAWAN_APP_DATA_BUFF_SIZE 64                                         /**< buffer size of the data to be transmitted. */
+#define LORAWAN_BUFFER_SIZE 64                                         /**< buffer size of the data to be transmitted. */
+#define LORAWAN_CLASS CLASS_C
 
-
-static uint8_t g_sendLoraDataBuffer[LORAWAN_APP_DATA_BUFF_SIZE];            //< Lora user application data buffer.
+static uint8_t g_sendLoraDataBuffer[LORAWAN_BUFFER_SIZE];            //< Lora user application data buffer.
 static lmh_app_data_t g_SendLoraData = {g_sendLoraDataBuffer, 0, 0, 0, 0}; //< Lora user application data structure.
-static uint8_t g_rcvdLoRaData[256];
-static uint8_t g_rcvdDataLen;
-static SemaphoreHandle_t g_taskEvent = NULL;
-static enum EventTypeEnum
-{
-    None = -1,
-    LoraDataReceived = 1,
-    Timer = 2
-} g_EventType;
 
+
+    
 
 class LoraHelper
 {
@@ -39,11 +32,7 @@ public:
     static void InitAndJoin();
 
 private:
-    LoraHelper()
-    {
-        SERIAL_LOG("INITIALIZING loraHelper")
-        g_taskEvent = xSemaphoreCreateBinary();
-    };
+    LoraHelper() {};
 };
 
 #endif
