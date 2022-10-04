@@ -90,7 +90,7 @@ void LoraHelper::lorawan_rx_handler(lmh_app_data_t *app_data)
         memcpy(g_rcvdLoRaData, app_data->buffer, app_data->buffsize);
         g_rcvdDataLen = app_data->buffsize;
 
-        g_EventType = 2;
+        g_EventType = EventType::LoraDataReceived;
 
         if (g_taskEvent != NULL)
         {

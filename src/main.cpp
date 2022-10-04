@@ -7,23 +7,21 @@
 #include "serialhelper.h"
 #include "main.h"
 
-
 uint32_t g_sleeptime = 180000UL;
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
-
+uint8_t g_GNSSTimeout = 120;
 
 SemaphoreHandle_t g_taskEvent = NULL;
-uint8_t g_EventType = -1;
+EventType g_EventType = EventType::None;
 uint8_t g_rcvdLoRaData[LORAWAN_BUFFER_SIZE];
 uint8_t g_rcvdDataLen = 0;
-
 
 void periodicWakeup(TimerHandle_t unused)
 {
   // Give the semaphore, so the loop task will wake up
-  g_EventType = 1;
+  g_EventType = EventType::Timer;
   xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
 }
 void setup()
@@ -102,7 +100,7 @@ void setup()
   // Go into sleep mode
   g_taskEvent = xSemaphoreCreateBinary();
   xSemaphoreGive(g_taskEvent);
-  g_EventType = 1;
+  g_EventType = EventType::Timer;
   g_taskWakeupTimer.begin(g_sleeptime, periodicWakeup);
   g_taskWakeupTimer.start();
 }
@@ -226,7 +224,7 @@ void doGPSFix()
 
   g_SendLoraData.buffer[size++] = g_msgcount >> 8;
   g_SendLoraData.buffer[size++] = g_msgcount;
-  uint16_t gpsTimeThing = gpsTime;
+  uint16_t gpsTimeThing = (uint16_t) gpsTime;
   SERIAL_LOG("GPS Time in packet: %d", gpsTimeThing);
   g_SendLoraData.buffer[size++] = gpsTimeThing >> 8;
   g_SendLoraData.buffer[size++] = gpsTimeThing;
@@ -275,14 +273,14 @@ void loop()
     SERIAL_LOG("Semaphore going: %d", g_EventType);
     switch (g_EventType)
     {
-    case 2:
+    case EventType::LoraDataReceived:
       handleReceivedMessage();
       break;
 
-    case 1:
+    case EventType::Timer:
       doGPSFix();
       break;
-      
+    case EventType::None:
     default:
       SERIAL_LOG("In loop, but without correct g_EventType")
       break;
