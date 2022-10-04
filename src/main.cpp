@@ -114,15 +114,51 @@ void handleReceivedMessage()
   {
     char hexstr[3];
     sprintf(hexstr, "%02x", g_rcvdLoRaData[i]);
-    SERIAL_LOG(hexstr);
+    SERIAL_LOG("DATA %d: %s", i, hexstr)
   }
 
-  if (g_rcvdLoRaData[0] == 01) {
-    g_sleeptime = g_rcvdLoRaData[1] * 1000;
-    SERIAL_LOG("Resetting sleeptime to:%d", g_sleeptime)
-    g_taskWakeupTimer.stop();
-    g_taskWakeupTimer.begin(g_sleeptime, periodicWakeup);
-    g_taskWakeupTimer.start();
+  for (uint8_t i = 0; i < g_rcvdDataLen;)
+  {
+    char hexstr[3];
+    sprintf(hexstr, "%02x", g_rcvdLoRaData[i]);
+    SERIAL_LOG("Processing cmd: %s", hexstr);
+
+    switch (g_rcvdLoRaData[i])
+    {
+    case ReceiveDataType::SleepTime:
+    {
+      uint16_t sleepdata = 0x0000;
+      sleepdata = g_rcvdLoRaData[++i];
+      sleepdata = g_rcvdLoRaData[++i] << 8;
+      SERIAL_LOG("CMD: Update sleeptime to %d", sleepdata);
+      g_sleeptime = sleepdata;
+      g_taskWakeupTimer.stop();
+      g_taskWakeupTimer.begin(g_sleeptime, periodicWakeup);
+      g_taskWakeupTimer.start();
+
+      break;
+    }
+    case ReceiveDataType::GPSDynamicModel:
+    {
+      uint8_t data = g_rcvdLoRaData[++i];
+      dynModel model = static_cast<dynModel>(data);
+      SERIAL_LOG("CMD: Setting dynamic model to %d", model)
+      g_GNSS.setDynamicModel(model);
+      g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
+      break;
+    }
+    case ReceiveDataType::GPSFixTimeout:
+    {
+      g_GNSSTimeout = g_rcvdLoRaData[++i];
+      SERIAL_LOG("CMD: Setting gps fix timeout to %d seconds", g_GNSSTimeout);
+      break;
+    }
+    default:
+    {
+      SERIAL_LOG("Unknown command, stopping processing.");
+      break;
+    }
+    }
   }
 }
 
@@ -156,7 +192,7 @@ void doGPSFix()
       delay(100);
     }
 
-    if ((millis() - gpsStart) > (1000 * 120))
+    if ((millis() - gpsStart) > (1000 * g_GNSSTimeout))
     {
       SERIAL_LOG("GNSS fix timeout");
       break;
@@ -172,7 +208,7 @@ void doGPSFix()
 
   SERIAL_LOG("GPS details: GPStime: %ums; SATS: %d; FIXTYPE: %d; LAT: %u; LONG: %u; Alt: %d\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
   uint16_t vbat_mv = BatteryHelper::readVBAT();
-  
+
   // We are done with the sensors, so we can turn them off
   digitalWrite(WB_IO2, LOW);
 
@@ -225,7 +261,6 @@ void doGPSFix()
     Serial.printf("lmh_send failed: %d\n", loraSendState);
   }
 #endif
-
 
   g_msgcount++;
 };
