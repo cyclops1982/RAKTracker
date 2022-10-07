@@ -16,42 +16,74 @@ struct ConfigOption
     ConfigType configType;
     size_t sizeOfOption;
     void *value;
-};
-
-static const ConfigOption configs[] = {
-    {"Sleep time between GPS fixes (in seconds)", ConfigType::SleepTime, sizeof(g_configParams._sleeptime), &g_configParams._sleeptime},
-    {"GPS - Dynamic Model", ConfigType::GPSDynamicModel, sizeof(g_configParams._gnssDynamicModel), &g_configParams._gnssDynamicModel},
-    {"GPS - Fix timeout (in seconds)", ConfigType::GPSFixTimeout, sizeof(g_configParams._gnssFixTimeout), &g_configParams._gnssFixTimeout}
-
+    void (*setfunc)(const ConfigOption *opt, uint8_t *arr);
 };
 
 struct ConfigurationParameters
 {
-    uint32_t _sleeptime = 1000 * 300;
-    uint8_t _gnssDynamicModel = 2;
-    uint16_t _gnssFixTimeout = 120000UL;
+
+    uint32_t _sleeptime = 300000;
+    uint16_t _gnssFixTimeout = 100; // in seconds
+    uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_BIKE;
+
+    static void SetUint32(const ConfigOption *option, uint8_t *arr);
+    static void SetUint16(const ConfigOption *option, uint8_t *arr);
+    static void SetUint8(const ConfigOption *option, uint8_t *arr);
 
 public:
     uint32_t GetSleepTime() const { return _sleeptime; };
-    void SetSleepTime(uint32_t timeInSeconds) { _sleeptime = timeInSeconds * 1000; }
-
     uint16_t GetGNSSFixTimeout() const { return _gnssFixTimeout; }
-    void SetGnSSFixTimeout(uint16_t timeout) { _gnssFixTimeout = timeout; }
-
+    // TODO: make this return `dynModel`. Requires a new Setmethod
     uint8_t GetGNSSDynamicModel() const { return _gnssDynamicModel; }
-    void SetGNSSDynamicModel(uint8_t dynModel) { _gnssDynamicModel = dynModel; }
 
-    void StoreSetting(ConfigType type, uint8_t *array)
+    void PrintAll();
+    void SetConfig(uint8_t *array, uint8_t length);
+
+} g_configParams;
+
+void ConfigurationParameters::SetUint32(const ConfigOption *option, uint8_t *arr)
+{
+    uint32_t val = 0;
+    memcpy(&val, arr, option->sizeOfOption);
+    uint32_t *ptr = (uint32_t *)option->value;
+    *ptr = __builtin_bswap32(val);
+}
+
+void ConfigurationParameters::SetUint16(const ConfigOption *option, uint8_t *arr)
+{
+    uint16_t val = 0;
+    memcpy(&val, arr, option->sizeOfOption);
+    uint16_t *ptr = (uint16_t *)option->value;
+    *ptr = __builtin_bswap16(val);
+}
+
+void ConfigurationParameters::SetUint8(const ConfigOption *option, uint8_t *arr)
+{
+    uint8_t val = 0;
+    memcpy(&val, arr, option->sizeOfOption);
+    uint8_t *ptr = (uint8_t *)option->value;
+    *ptr = val;
+}
+
+static const ConfigOption g_configs[] = {
+    {"Sleep time between GPS fixes (in seconds)", ConfigType::SleepTime, sizeof(g_configParams._sleeptime), &g_configParams._sleeptime, ConfigurationParameters::SetUint32},
+    {"GPS - Fix timeout (in seconds)", ConfigType::GPSFixTimeout, sizeof(g_configParams._gnssFixTimeout), &g_configParams._gnssFixTimeout, ConfigurationParameters::SetUint16},
+    {"GPS - Dynamic Model", ConfigType::GPSDynamicModel, sizeof(g_configParams._gnssDynamicModel), &g_configParams._gnssDynamicModel, ConfigurationParameters::SetUint8},
+};
+
+void ConfigurationParameters::SetConfig(uint8_t *arr, uint8_t length)
+{
+    for (size_t i; i < length; i++)
     {
-        for (int i = 0; i < 3; i++)
+        for (size_t x; x < sizeof(g_configs) / sizeof(ConfigOption); x++)
         {
-            if (configs[i].configType == type)
+            const ConfigOption *conf = &g_configs[x];
+            if (conf->configType == arr[i])
             {
-                configs[i].value = *array;
+                conf->setfunc(conf, (arr + i + 1));
             }
         }
     }
-
-} g_configParams;
+}
 
 #endif

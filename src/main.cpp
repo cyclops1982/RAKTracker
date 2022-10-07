@@ -11,7 +11,6 @@
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
-uint8_t g_GNSSTimeout = 120;
 
 SemaphoreHandle_t g_taskEvent = NULL;
 EventType g_EventType = EventType::None;
@@ -72,10 +71,10 @@ void setup()
     delay(500);
     SERIAL_LOG("Attempting to re-connect to u-blox GNSS...");
   }
-  g_GNSS.setDynamicModel(DYN_MODEL_BIKE); // turns out a Bike is like a sheep.
+  g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel()); // turns out a Bike is like a sheep.
+  g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
   g_GNSS.setI2COutput(COM_TYPE_UBX);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
-  g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
 
   // We should also disable SBAS and IMES via UBX-CFG-GNSS
   // We should also turn of time-pulses via UBX-CFG-TP5
@@ -114,50 +113,7 @@ void handleReceivedMessage()
     sprintf(hexstr, "%02x", g_rcvdLoRaData[i]);
     SERIAL_LOG("DATA %d: %s", i, hexstr)
   }
-
-  for (uint8_t i = 0; i < g_rcvdDataLen; i++)
-  {
-    char hexstr[3];
-    sprintf(hexstr, "%02x", g_rcvdLoRaData[i]);
-    SERIAL_LOG("Processing cmd: %s", hexstr);
-
-    switch (g_rcvdLoRaData[i])
-    {
-    case ConfigType::SleepTime:
-    {
-      uint16_t sleepdata = 0x0000;
-      sleepdata = g_rcvdLoRaData[++i];
-      sleepdata = g_rcvdLoRaData[++i] << 8;
-      SERIAL_LOG("CMD: Update sleeptime to %d", sleepdata);
-      g_configParams.SetSleepTime(sleepdata);
-      g_taskWakeupTimer.stop();
-      g_taskWakeupTimer.begin(g_configParams.GetSleepTime(), periodicWakeup);
-      g_taskWakeupTimer.start();
-
-      break;
-    }
-    case ConfigType::GPSDynamicModel:
-    {
-      uint8_t data = g_rcvdLoRaData[++i];
-      dynModel model = static_cast<dynModel>(data);
-      SERIAL_LOG("CMD: Setting dynamic model to %d", model)
-      g_GNSS.setDynamicModel(model);
-      g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
-      break;
-    }
-    case ConfigType::GPSFixTimeout:
-    {
-      g_GNSSTimeout = g_rcvdLoRaData[++i];
-      SERIAL_LOG("CMD: Setting gps fix timeout to %d seconds", g_GNSSTimeout);
-      break;
-    }
-    default:
-    {
-      SERIAL_LOG("Unknown command, stopping processing.");
-      break;
-    }
-    }
-  }
+  g_configParams.SetConfig(g_rcvdLoRaData, g_rcvdDataLen);
 }
 
 void doGPSFix()
@@ -190,7 +146,7 @@ void doGPSFix()
       delay(100);
     }
 
-    if ((millis() - gpsStart) > (1000 * g_GNSSTimeout))
+    if ((millis() - gpsStart) > (1000 * g_configParams.GetGNSSFixTimeout()))
     {
       SERIAL_LOG("GNSS fix timeout");
       break;
