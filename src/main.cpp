@@ -6,8 +6,8 @@
 #include "ledhelper.h"
 #include "serialhelper.h"
 #include "main.h"
+#include "config.h"
 
-uint32_t g_sleeptime = 180000UL;
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
@@ -101,7 +101,7 @@ void setup()
   g_taskEvent = xSemaphoreCreateBinary();
   xSemaphoreGive(g_taskEvent);
   g_EventType = EventType::Timer;
-  g_taskWakeupTimer.begin(g_sleeptime, periodicWakeup);
+  g_taskWakeupTimer.begin(g_configParams.GetSleepTime(), periodicWakeup);
   g_taskWakeupTimer.start();
 }
 
@@ -115,7 +115,7 @@ void handleReceivedMessage()
     SERIAL_LOG("DATA %d: %s", i, hexstr)
   }
 
-  for (uint8_t i = 0; i < g_rcvdDataLen;)
+  for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
     char hexstr[3];
     sprintf(hexstr, "%02x", g_rcvdLoRaData[i]);
@@ -123,20 +123,20 @@ void handleReceivedMessage()
 
     switch (g_rcvdLoRaData[i])
     {
-    case ReceiveDataType::SleepTime:
+    case ConfigType::SleepTime:
     {
       uint16_t sleepdata = 0x0000;
       sleepdata = g_rcvdLoRaData[++i];
       sleepdata = g_rcvdLoRaData[++i] << 8;
       SERIAL_LOG("CMD: Update sleeptime to %d", sleepdata);
-      g_sleeptime = sleepdata;
+      g_configParams.SetSleepTime(sleepdata);
       g_taskWakeupTimer.stop();
-      g_taskWakeupTimer.begin(g_sleeptime, periodicWakeup);
+      g_taskWakeupTimer.begin(g_configParams.GetSleepTime(), periodicWakeup);
       g_taskWakeupTimer.start();
 
       break;
     }
-    case ReceiveDataType::GPSDynamicModel:
+    case ConfigType::GPSDynamicModel:
     {
       uint8_t data = g_rcvdLoRaData[++i];
       dynModel model = static_cast<dynModel>(data);
@@ -145,7 +145,7 @@ void handleReceivedMessage()
       g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
       break;
     }
-    case ReceiveDataType::GPSFixTimeout:
+    case ConfigType::GPSFixTimeout:
     {
       g_GNSSTimeout = g_rcvdLoRaData[++i];
       SERIAL_LOG("CMD: Setting gps fix timeout to %d seconds", g_GNSSTimeout);
@@ -224,7 +224,7 @@ void doGPSFix()
 
   g_SendLoraData.buffer[size++] = g_msgcount >> 8;
   g_SendLoraData.buffer[size++] = g_msgcount;
-  uint16_t gpsTimeThing = (uint16_t) gpsTime;
+  uint16_t gpsTimeThing = (uint16_t)gpsTime;
   SERIAL_LOG("GPS Time in packet: %d", gpsTimeThing);
   g_SendLoraData.buffer[size++] = gpsTimeThing >> 8;
   g_SendLoraData.buffer[size++] = gpsTimeThing;

@@ -11,20 +11,11 @@
 #define LORAWAN_TX_POWER TX_POWER_5 /*LoRaMac tx power definition, from TX_POWER_0 to TX_POWER_15*/
 #define JOINREQ_NBTRIALS 3
 #define LORAWAN_APP_PORT 2
-#define LORAWAN_BUFFER_SIZE 64                                         /**< buffer size of the data to be transmitted. */
+#define LORAWAN_BUFFER_SIZE 64 /**< buffer size of the data to be transmitted. */
 #define LORAWAN_CLASS CLASS_C
 
-static uint8_t g_sendLoraDataBuffer[LORAWAN_BUFFER_SIZE];            //< Lora user application data buffer.
+static uint8_t g_sendLoraDataBuffer[LORAWAN_BUFFER_SIZE];                  //< Lora user application data buffer.
 static lmh_app_data_t g_SendLoraData = {g_sendLoraDataBuffer, 0, 0, 0, 0}; //< Lora user application data structure.
-
-enum ReceiveDataType {
-    Reboot = 0x00,
-    SleepTime = 0x01,
-    GPSDynamicModel = 0x20,
-    GPSFixTimeout = 0x21
-};
-
-
 
 class LoraHelper
 {
@@ -38,7 +29,7 @@ public:
     static void InitAndJoin();
 
 private:
-    LoraHelper() {};
+    LoraHelper(){};
 };
 
 #endif
