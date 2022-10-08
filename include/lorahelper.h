@@ -12,13 +12,14 @@
 #define JOINREQ_NBTRIALS 3
 #define LORAWAN_APP_PORT 2
 #define LORAWAN_BUFFER_SIZE 64 /**< buffer size of the data to be transmitted. */
-#define LORAWAN_CLASS CLASS_C
+#define LORAWAN_CLASS CLASS_A
 
 static uint8_t g_sendLoraDataBuffer[LORAWAN_BUFFER_SIZE];                  //< Lora user application data buffer.
 static lmh_app_data_t g_SendLoraData = {g_sendLoraDataBuffer, 0, 0, 0, 0}; //< Lora user application data structure.
 
-class LoraHelper
+struct LoraHelper
 {
+
 public:
     static void lorawan_has_joined_handler(void);
     static void lorawan_join_failed_handler(void);
@@ -27,6 +28,8 @@ public:
     static void lorawan_unconf_finished(void);
     static void lorawan_conf_finished(bool result);
     static void InitAndJoin();
+    static void SetDataRate(uint8_t datarate, bool adrEnabled);
+    static void SetTXPower(uint8_t TXPower);
 
 private:
     LoraHelper(){};

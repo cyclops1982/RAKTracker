@@ -19,7 +19,6 @@ lmh_callback_t lora_callbacks = {BatteryHelper::GetLoRaWanBattVal,
 
 void LoraHelper::lorawan_has_joined_handler(void)
 {
-
     SERIAL_LOG("OTAA Mode, Network Joined!");
     lmh_error_status ret = lmh_class_request(LORAWAN_CLASS);
     if (ret == LMH_SUCCESS)
@@ -111,6 +110,16 @@ void LoraHelper::lorawan_confirm_class_handler(DeviceClass_t Class)
     g_SendLoraData.buffsize = 0;
     g_SendLoraData.port = LORAWAN_APP_PORT;
     lmh_send(&g_SendLoraData, LMH_CONFIRMED_MSG);
+}
+
+void LoraHelper::SetDataRate(uint8_t datarate, bool adr)
+{
+    lmh_datarate_set(datarate, adr);
+}
+
+void LoraHelper::SetTXPower(uint8_t TXPower)
+{
+    lmh_tx_power_set(TXPower);
 }
 
 void LoraHelper::InitAndJoin()

@@ -114,6 +114,38 @@ void handleReceivedMessage()
     SERIAL_LOG("DATA %d: %s", i, hexstr)
   }
   g_configParams.SetConfig(g_rcvdLoRaData, g_rcvdDataLen);
+
+  // Some parameters require some re-initialization, which is what we do here for those cases.
+  for (uint8_t i = 0; i < g_rcvdDataLen; i++)
+  {
+    for (size_t x; x < sizeof(g_configs) / sizeof(ConfigOption); x++)
+    {
+      const ConfigOption *conf = &g_configs[x];
+      if (conf->configType == g_rcvdLoRaData[i])
+      {
+        switch (g_rcvdLoRaData[i])
+        {
+        case ConfigType::SleepTime:
+          g_taskWakeupTimer.stop();
+          g_taskWakeupTimer.begin(g_configParams.GetSleepTime(), periodicWakeup);
+          g_taskWakeupTimer.start();
+          break;
+        case ConfigType::GPSDynamicModel:
+          g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel()); // turns out a Bike is like a sheep.
+          g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
+          break;
+        case ConfigType::LORA_DataRate:
+          LoraHelper::SetDataRate(g_configParams.GetLoraDataRate(), g_configParams.GetLoraADREnabled());
+          break;
+        case ConfigType::LORA_TXPower:
+          LoraHelper::SetTXPower(g_configParams.GetLoraTXPower());
+          break;
+        }
+
+        i += conf->sizeOfOption; // jump to the next one
+      }
+    }
+  }
 }
 
 void doGPSFix()
