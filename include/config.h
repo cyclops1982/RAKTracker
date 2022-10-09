@@ -12,7 +12,8 @@ enum ConfigType
     GPSFixTimeout = 0x21,
     LORA_TXPower = 0x40,
     LORA_DataRate = 0x41,
-    LORA_ADREnabled = 0x42
+    LORA_ADREnabled = 0x42,
+    LORA_RequireConfirmation = 0x43
 };
 
 struct ConfigOption
@@ -27,6 +28,9 @@ struct ConfigOption
 struct ConfigurationParameters
 {
 
+    // This is basically the configuration options we use. 
+    // They can be updated remotely, although this might not make sense.
+    // After restart, we get back to the defaults.
     uint32_t _sleeptime = 300000;
     uint16_t _gnssFixTimeout = 100; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_BIKE;
@@ -36,6 +40,7 @@ struct ConfigurationParameters
     uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
     uint8_t _loraNodeAppEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     uint8_t _loraNodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
+    bool _loraRequireConfirmation = true;
 
     static void SetUint32(const ConfigOption *option, uint8_t *arr);
     static void SetUint16(const ConfigOption *option, uint8_t *arr);
@@ -55,6 +60,7 @@ public:
     uint8_t* GetLoraDevEUI() { return _loraDevEUI; }
     uint8_t* GetLoraNodeAppEUI() {return _loraNodeAppEUI; }
     uint8_t* GetLoraAppKey() {return _loraNodeAppKey; }
+    bool GetLoraRequireConfirmation() { return _loraRequireConfirmation ; }
 
     void PrintAll();
     void SetConfig(uint8_t *array, uint8_t length);
@@ -68,6 +74,7 @@ static const ConfigOption g_configs[] = {
     {"LoraWAN - TX Power", ConfigType::LORA_TXPower, sizeof(g_configParams._loraTXPower), &g_configParams._loraTXPower, ConfigurationParameters::SetInt8},
     {"LoraWAN - DataRate", ConfigType::LORA_DataRate, sizeof(g_configParams._loraDataRate), &g_configParams._loraDataRate, ConfigurationParameters::SetInt8},
     {"LoraWAN - ADR Enabled", ConfigType::LORA_ADREnabled, sizeof(g_configParams._loraADREnabled), &g_configParams._loraADREnabled, ConfigurationParameters::SetBool},
+    {"LoraWAN - Require confirmation message", ConfigType::LORA_RequireConfirmation, sizeof(g_configParams._loraRequireConfirmation), &g_configParams._loraRequireConfirmation, ConfigurationParameters::SetBool},
 };
 
 void ConfigurationParameters::SetUint32(const ConfigOption *option, uint8_t *arr)

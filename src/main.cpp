@@ -167,7 +167,6 @@ void doGPSFix()
   byte gpsFixType = 0;
   while (1)
   {
-    // LedHelper::BlinkDelay(LED_BLUE, 250);
     gpsFixType = g_GNSS.getFixType(); // Get the fix type
 
     if (gpsFixType == 3 && g_GNSS.getGnssFixOk())
@@ -238,7 +237,7 @@ void doGPSFix()
   g_SendLoraData.buffsize = size;
 
   lmh_error_status loraSendState = LMH_ERROR;
-  loraSendState = lmh_send(&g_SendLoraData, LMH_CONFIRMED_MSG);
+  loraSendState = lmh_send(&g_SendLoraData, (lmh_confirm)g_configParams.GetLoraRequireConfirmation());
 #if !MAX_SAVE
   if (loraSendState == LMH_SUCCESS)
   {
@@ -257,16 +256,16 @@ void loop()
 {
   if (xSemaphoreTake(g_taskEvent, portMAX_DELAY) == pdTRUE)
   {
+    SERIAL_LOG("Running loop for EventType: %d", g_EventType);
+
 #if MAX_SAVE == false
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
 #endif
-    SERIAL_LOG("Semaphore going: %d", g_EventType);
     switch (g_EventType)
     {
     case EventType::LoraDataReceived:
       handleReceivedMessage();
       break;
-
     case EventType::Timer:
       doGPSFix();
       break;
