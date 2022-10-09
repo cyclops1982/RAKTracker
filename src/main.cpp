@@ -94,7 +94,8 @@ void setup()
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
 
   // Lora stuff
-  LoraHelper::InitAndJoin();
+  LoraHelper::InitAndJoin(g_configParams.GetLoraDataRate(), g_configParams.GetLoraTXPower(), g_configParams.GetLoraADREnabled(),
+  g_configParams.GetLoraDevEUI(), g_configParams.GetLoraNodeAppEUI(), g_configParams.GetLoraAppKey());
 
   // Go into sleep mode
   g_taskEvent = xSemaphoreCreateBinary();
@@ -134,6 +135,7 @@ void handleReceivedMessage()
           g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel()); // turns out a Bike is like a sheep.
           g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
           break;
+        case ConfigType::LORA_ADREnabled:
         case ConfigType::LORA_DataRate:
           LoraHelper::SetDataRate(g_configParams.GetLoraDataRate(), g_configParams.GetLoraADREnabled());
           break;

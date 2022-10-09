@@ -2,10 +2,6 @@
 #include "ledhelper.h"
 #include "main.h"
 
-// uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x06, 0xBE, 0x44};
-uint8_t nodeDeviceEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
-uint8_t nodeAppEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-uint8_t nodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
 
 lmh_callback_t lora_callbacks = {BatteryHelper::GetLoRaWanBattVal,
                                  BoardGetUniqueId,
@@ -112,17 +108,19 @@ void LoraHelper::lorawan_confirm_class_handler(DeviceClass_t Class)
     lmh_send(&g_SendLoraData, LMH_CONFIRMED_MSG);
 }
 
-void LoraHelper::SetDataRate(uint8_t datarate, bool adr)
+void LoraHelper::SetDataRate(int8_t datarate, bool adr)
 {
+    SERIAL_LOG("Setting datarate to %d and adr %s", datarate, adr ? "true" : "false");
     lmh_datarate_set(datarate, adr);
 }
 
-void LoraHelper::SetTXPower(uint8_t TXPower)
+void LoraHelper::SetTXPower(int8_t TXPower)
 {
+    SERIAL_LOG("Setting TX Power to %d\n", TXPower)
     lmh_tx_power_set(TXPower);
 }
 
-void LoraHelper::InitAndJoin()
+void LoraHelper::InitAndJoin(int8_t datarate, int8_t TXPower, bool adrEnabled, uint8_t* nodeDeviceEUI, uint8_t* nodeAppEUI, uint8_t* nodeAppKey)
 {
     SERIAL_LOG("Init and Join LoraWAN");
 #ifdef RAK4630
@@ -134,7 +132,7 @@ void LoraHelper::InitAndJoin()
     lmh_setAppEui(nodeAppEUI);
     lmh_setAppKey(nodeAppKey);
 
-    lmh_param_t lora_param_init = {LORAWAN_ADR_ON, LORAWAN_DATERATE, LORAWAN_PUBLIC_NETWORK, JOINREQ_NBTRIALS, LORAWAN_TX_POWER, LORAWAN_DUTYCYCLE_OFF};
+    lmh_param_t lora_param_init = {adrEnabled, datarate, LORAWAN_PUBLIC_NETWORK, JOINREQ_NBTRIALS, TXPower, LORAWAN_DUTYCYCLE_OFF};
 
     uint32_t err_code = lmh_init(&lora_callbacks, lora_param_init, true, CLASS_A, LORAMAC_REGION_EU868);
     if (err_code != 0)

@@ -7,8 +7,6 @@
 
 //#define SCHED_MAX_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum size of scheduler events. */
 //#define SCHED_QUEUE_SIZE 60                     /**< Maximum number of events in the scheduler queue. */
-#define LORAWAN_DATERATE DR_0       /*LoRaMac datarates definition, from DR_0 to DR_5*/
-#define LORAWAN_TX_POWER TX_POWER_5 /*LoRaMac tx power definition, from TX_POWER_0 to TX_POWER_15*/
 #define JOINREQ_NBTRIALS 3
 #define LORAWAN_APP_PORT 2
 #define LORAWAN_BUFFER_SIZE 64 /**< buffer size of the data to be transmitted. */
@@ -27,9 +25,9 @@ public:
     static void lorawan_confirm_class_handler(DeviceClass_t Class);
     static void lorawan_unconf_finished(void);
     static void lorawan_conf_finished(bool result);
-    static void InitAndJoin();
-    static void SetDataRate(uint8_t datarate, bool adrEnabled);
-    static void SetTXPower(uint8_t TXPower);
+    static void InitAndJoin(int8_t datarate, int8_t TXPower, bool adrEnabled, uint8_t* nodeDeviceEUI, uint8_t* nodeAppEUI, uint8_t* nodeAppKey);
+    static void SetDataRate(int8_t datarate, bool adrEnabled);
+    static void SetTXPower(int8_t TXPower);
 
 private:
     LoraHelper(){};
