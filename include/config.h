@@ -7,7 +7,6 @@
 enum ConfigType
 {
     SleepTime = 0x01,
-    StatusLed = 0x02,
     GPSDynamicModel = 0x20,
     GPSFixTimeout = 0x21,
     LORA_TXPower = 0x40,
@@ -28,11 +27,11 @@ struct ConfigOption
 struct ConfigurationParameters
 {
 
-    // This is basically the configuration options we use. 
+    // This is basically the configuration options we use.
     // They can be updated remotely, although this might not make sense.
     // After restart, we get back to the defaults.
-    uint32_t _sleeptime = 300000;
-    uint16_t _gnssFixTimeout = 100; // in seconds
+    uint16_t _sleeptime = 30;      // in seconds
+    uint16_t _gnssFixTimeout = 10; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_BIKE;
     int8_t _loraDataRate = DR_0;
     int8_t _loraTXPower = TX_POWER_5;
@@ -49,26 +48,24 @@ struct ConfigurationParameters
     static void SetBool(const ConfigOption *option, uint8_t *arr);
 
 public:
-    uint32_t GetSleepTime() { return _sleeptime; }
-    uint16_t GetGNSSFixTimeout() { return _gnssFixTimeout; }
+    uint32_t GetSleepTime() { return _sleeptime * 1000; }
+    uint16_t GetGNSSFixTimeout() { return _gnssFixTimeout * 1000; }
     // TODO: make this return `dynModel`. Requires a new Setmethod
     uint8_t GetGNSSDynamicModel() { return _gnssDynamicModel; }
 
     uint8_t GetLoraTXPower() { return _loraTXPower; }
     uint8_t GetLoraDataRate() { return _loraDataRate; }
     bool GetLoraADREnabled() { return _loraADREnabled; }
-    uint8_t* GetLoraDevEUI() { return _loraDevEUI; }
-    uint8_t* GetLoraNodeAppEUI() {return _loraNodeAppEUI; }
-    uint8_t* GetLoraAppKey() {return _loraNodeAppKey; }
-    bool GetLoraRequireConfirmation() { return _loraRequireConfirmation ; }
-
-    void PrintAll();
+    uint8_t *GetLoraDevEUI() { return _loraDevEUI; }
+    uint8_t *GetLoraNodeAppEUI() { return _loraNodeAppEUI; }
+    uint8_t *GetLoraAppKey() { return _loraNodeAppKey; }
+    bool GetLoraRequireConfirmation() { return _loraRequireConfirmation; }
     void SetConfig(uint8_t *array, uint8_t length);
 
 } g_configParams;
 
 static const ConfigOption g_configs[] = {
-    {"Sleep time between GPS fixes (in seconds)", ConfigType::SleepTime, sizeof(g_configParams._sleeptime), &g_configParams._sleeptime, ConfigurationParameters::SetUint32},
+    {"Sleep time between GPS fixes (in seconds)", ConfigType::SleepTime, sizeof(g_configParams._sleeptime), &g_configParams._sleeptime, ConfigurationParameters::SetUint16},
     {"GPS - Fix timeout (in seconds)", ConfigType::GPSFixTimeout, sizeof(g_configParams._gnssFixTimeout), &g_configParams._gnssFixTimeout, ConfigurationParameters::SetUint16},
     {"GPS - Dynamic Model", ConfigType::GPSDynamicModel, sizeof(g_configParams._gnssDynamicModel), &g_configParams._gnssDynamicModel, ConfigurationParameters::SetUint8},
     {"LoraWAN - TX Power", ConfigType::LORA_TXPower, sizeof(g_configParams._loraTXPower), &g_configParams._loraTXPower, ConfigurationParameters::SetInt8},
@@ -113,7 +110,8 @@ void ConfigurationParameters::SetBool(const ConfigOption *option, uint8_t *arr)
 {
     bool *ptr = (bool *)option->value;
     *ptr = false;
-    if (arr > 0)
+    // for boolean, we just expect a value > 0 to be true.
+    if (arr[0] > 0)
     {
         *ptr = true;
     }
@@ -121,17 +119,19 @@ void ConfigurationParameters::SetBool(const ConfigOption *option, uint8_t *arr)
 
 void ConfigurationParameters::SetConfig(uint8_t *arr, uint8_t length)
 {
-    for (size_t i = 0; i < length; i++)
+    for (uint8_t i = 0; i < length; i++)
     {
+        SERIAL_LOG("Setting %d - %02x", i, arr[i])
         for (size_t x = 0; x < sizeof(g_configs) / sizeof(ConfigOption); x++)
         {
             const ConfigOption *conf = &g_configs[x];
+            SERIAL_LOG("Setting configtype %02x against %02x", conf->configType, arr[i]);
             if (conf->configType == arr[i])
             {
                 conf->setfunc(conf, (arr + i + 1));
+                i += conf->sizeOfOption;
+                break;
             }
-            i += conf->sizeOfOption;
-            break;
         }
     }
 }

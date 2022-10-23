@@ -95,7 +95,7 @@ void setup()
 
   // Lora stuff
   LoraHelper::InitAndJoin(g_configParams.GetLoraDataRate(), g_configParams.GetLoraTXPower(), g_configParams.GetLoraADREnabled(),
-  g_configParams.GetLoraDevEUI(), g_configParams.GetLoraNodeAppEUI(), g_configParams.GetLoraAppKey());
+                          g_configParams.GetLoraDevEUI(), g_configParams.GetLoraNodeAppEUI(), g_configParams.GetLoraAppKey());
 
   // Go into sleep mode
   g_taskEvent = xSemaphoreCreateBinary();
@@ -119,32 +119,39 @@ void handleReceivedMessage()
   // Some parameters require some re-initialization, which is what we do here for those cases.
   for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
-    for (size_t x; x < sizeof(g_configs) / sizeof(ConfigOption); x++)
+    SERIAL_LOG("DATA TO PROCESS: %02x", g_rcvdLoRaData[i]);
+    for (size_t x = 0; x < sizeof(g_configs) / sizeof(ConfigOption); x++)
     {
       const ConfigOption *conf = &g_configs[x];
+      SERIAL_LOG("ConfigType: %02x - against %02x", conf->configType, g_rcvdLoRaData[i]);
       if (conf->configType == g_rcvdLoRaData[i])
       {
         switch (g_rcvdLoRaData[i])
         {
         case ConfigType::SleepTime:
+          SERIAL_LOG("Resetting sleeptimer to %u", g_configParams.GetSleepTime());
           g_taskWakeupTimer.stop();
           g_taskWakeupTimer.begin(g_configParams.GetSleepTime(), periodicWakeup);
           g_taskWakeupTimer.start();
           break;
         case ConfigType::GPSDynamicModel:
+          SERIAL_LOG("Setting GNSS Dynamic Model to %u", g_configParams.GetGNSSDynamicModel());
           g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel()); // turns out a Bike is like a sheep.
           g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
           break;
         case ConfigType::LORA_ADREnabled:
         case ConfigType::LORA_DataRate:
+          SERIAL_LOG("Setting Lora DataRate to %u and ARD to %d", g_configParams.GetLoraDataRate(), g_configParams.GetLoraADREnabled());
           LoraHelper::SetDataRate(g_configParams.GetLoraDataRate(), g_configParams.GetLoraADREnabled());
           break;
         case ConfigType::LORA_TXPower:
+          SERIAL_LOG("Setting Lora TX Power to %d", g_configParams.GetLoraTXPower());
           LoraHelper::SetTXPower(g_configParams.GetLoraTXPower());
           break;
         }
-
+        //TOOD: check if this works, because we don't get both values.
         i += conf->sizeOfOption; // jump to the next one
+        break;
       }
     }
   }
@@ -179,21 +186,21 @@ void doGPSFix()
       delay(100);
     }
 
-    if ((millis() - gpsStart) > (1000 * g_configParams.GetGNSSFixTimeout()))
+    if ((millis() - gpsStart) > (g_configParams.GetGNSSFixTimeout()))
     {
-      SERIAL_LOG("GNSS fix timeout");
+      SERIAL_LOG("GNSS fix timeout:  %u > %u", (millis() - gpsStart), g_configParams.GetGNSSFixTimeout());
       break;
     }
 
     SERIAL_LOG("FixType: %d", gpsFixType);
   }
   uint32_t gpsTime = millis() - gpsStart;
-  uint32_t gpsLat = g_GNSS.getLatitude();
-  uint32_t gpsLong = g_GNSS.getLongitude();
+  int32_t gpsLat = g_GNSS.getLatitude();
+  int32_t gpsLong = g_GNSS.getLongitude();
   uint8_t gpsSats = g_GNSS.getSIV();
   int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
 
-  SERIAL_LOG("GPS details: GPStime: %ums; SATS: %d; FIXTYPE: %d; LAT: %u; LONG: %u; Alt: %d\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
+  SERIAL_LOG("GPS details: GPStime: %ums; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d; Alt: %d\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
   uint16_t vbat_mv = BatteryHelper::readVBAT();
 
   // We are done with the sensors, so we can turn them off
@@ -204,7 +211,7 @@ void doGPSFix()
   int size = 0;
   g_SendLoraData.port = 2;
   g_SendLoraData.buffer[size++] = 0x02; // device
-  g_SendLoraData.buffer[size++] = 0x03; // msg version
+  g_SendLoraData.buffer[size++] = 0x04; // msg version; 03 has uints for lat/long; 04 has int32
 
   g_SendLoraData.buffer[size++] = vbat_mv >> 8;
   g_SendLoraData.buffer[size++] = vbat_mv;
