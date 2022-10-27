@@ -178,6 +178,7 @@ void doGPSFix()
     if (gpsFixType == 3 && g_GNSS.getGnssFixOk())
     {
       SERIAL_LOG("FixType 3 and GnnsFixOK");
+      gpsFixType = g_GNSS.getFixType(); // TODO: check if this results in a 4 whenever we get a fix.
       break;
     }
     else
