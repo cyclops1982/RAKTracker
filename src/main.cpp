@@ -107,7 +107,6 @@ void setup()
 
 void handleReceivedMessage()
 {
-  SERIAL_LOG("RECEIVED LORA DATA: %d", g_rcvdDataLen)
   for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
     char hexstr[3];
