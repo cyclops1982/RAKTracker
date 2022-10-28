@@ -80,7 +80,6 @@ void LoraHelper::lorawan_rx_handler(lmh_app_data_t *app_data)
         }
         break;
     case LORAWAN_APP_PORT:
-        SERIAL_LOG("RECEIVED LORA DATA");
         // Copy the data into loop data buffer
         memcpy(g_rcvdLoRaData, app_data->buffer, app_data->buffsize);
         g_rcvdDataLen = app_data->buffsize;
@@ -89,7 +88,6 @@ void LoraHelper::lorawan_rx_handler(lmh_app_data_t *app_data)
 
         if (g_taskEvent != NULL)
         {
-            SERIAL_LOG("Waking up loop task: %d", g_EventType);
             xSemaphoreGive(g_taskEvent);
         }
         break;

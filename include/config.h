@@ -80,6 +80,7 @@ void ConfigurationParameters::SetUint32(const ConfigOption *option, uint8_t *arr
     memcpy(&val, arr, option->sizeOfOption);
     uint32_t *ptr = (uint32_t *)option->value;
     *ptr = __builtin_bswap32(val);
+    SERIAL_LOG("Setting '%s' change to %u", option->name, *ptr);
 }
 
 void ConfigurationParameters::SetUint16(const ConfigOption *option, uint8_t *arr)
@@ -88,6 +89,7 @@ void ConfigurationParameters::SetUint16(const ConfigOption *option, uint8_t *arr
     memcpy(&val, arr, option->sizeOfOption);
     uint16_t *ptr = (uint16_t *)option->value;
     *ptr = __builtin_bswap16(val);
+    SERIAL_LOG("Setting '%s' change to %u", option->name, *ptr);
 }
 
 void ConfigurationParameters::SetUint8(const ConfigOption *option, uint8_t *arr)
@@ -96,6 +98,8 @@ void ConfigurationParameters::SetUint8(const ConfigOption *option, uint8_t *arr)
     memcpy(&val, arr, option->sizeOfOption);
     uint8_t *ptr = (uint8_t *)option->value;
     *ptr = val;
+    SERIAL_LOG("Setting '%s' change to %u", option->name, *ptr);
+
 }
 
 void ConfigurationParameters::SetInt8(const ConfigOption *option, uint8_t *arr)
@@ -104,6 +108,8 @@ void ConfigurationParameters::SetInt8(const ConfigOption *option, uint8_t *arr)
     memcpy(&val, arr, option->sizeOfOption);
     int8_t *ptr = (int8_t *)option->value;
     *ptr = val;
+    SERIAL_LOG("Setting '%s' change to %d", option->name, *ptr);
+
 }
 
 void ConfigurationParameters::SetBool(const ConfigOption *option, uint8_t *arr)
@@ -115,17 +121,17 @@ void ConfigurationParameters::SetBool(const ConfigOption *option, uint8_t *arr)
     {
         *ptr = true;
     }
+    SERIAL_LOG("Setting '%s' change to %d", option->name, *ptr);
+
 }
 
 void ConfigurationParameters::SetConfig(uint8_t *arr, uint8_t length)
 {
     for (uint8_t i = 0; i < length; i++)
     {
-        SERIAL_LOG("Setting %d - %02x", i, arr[i])
         for (size_t x = 0; x < sizeof(g_configs) / sizeof(ConfigOption); x++)
         {
             const ConfigOption *conf = &g_configs[x];
-            SERIAL_LOG("Setting configtype %02x against %02x", conf->configType, arr[i]);
             if (conf->configType == arr[i])
             {
                 conf->setfunc(conf, (arr + i + 1));

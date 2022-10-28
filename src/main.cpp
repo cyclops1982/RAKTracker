@@ -146,7 +146,6 @@ void handleReceivedMessage()
           LoraHelper::SetTXPower(g_configParams.GetLoraTXPower());
           break;
         }
-        //TOOD: check if this works, because we don't get both values.
         i += conf->sizeOfOption; // jump to the next one
         break;
       }
