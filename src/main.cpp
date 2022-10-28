@@ -64,7 +64,6 @@ void setup()
 
   SERIAL_LOG("Found GNSS with Protocol version: %d.%d", g_GNSS.getProtocolVersionHigh(), g_GNSS.getProtocolVersionLow());
   g_GNSS.factoryReset();
-  // g_GNSS.enableDebugging();
 
   while (g_GNSS.begin() == false) // Attempt to re-connect
   {
@@ -177,29 +176,28 @@ void doGPSFix()
     if (gpsFixType == 3 && g_GNSS.getGnssFixOk())
     {
       SERIAL_LOG("FixType 3 and GnnsFixOK");
-      gpsFixType = g_GNSS.getFixType(); // TODO: check if this results in a 4 whenever we get a fix.
       break;
     }
     else
     {
-      delay(100);
+      delay(500);
     }
 
-    if ((millis() - gpsStart) > (g_configParams.GetGNSSFixTimeout()))
+    if ((millis() - gpsStart) > gnssTimeout)
     {
-      SERIAL_LOG("GNSS fix timeout:  %u > %u", (millis() - gpsStart), g_configParams.GetGNSSFixTimeout());
+      SERIAL_LOG("GNSS fix timeout:  %u > %u", (millis() - gpsStart), gnssTimeout);
       break;
     }
 
     SERIAL_LOG("FixType: %d", gpsFixType);
   }
-  uint32_t gpsTime = millis() - gpsStart;
+  uint16_t gpsTimeInSeconds = (uint16_t) ((millis() - gpsStart)/1000);
   int32_t gpsLat = g_GNSS.getLatitude();
   int32_t gpsLong = g_GNSS.getLongitude();
   uint8_t gpsSats = g_GNSS.getSIV();
   int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
 
-  SERIAL_LOG("GPS details: GPStime: %ums; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d; Alt: %d\r\n", gpsTime, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
+  SERIAL_LOG("GPS details: GPStime: %us; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d; Alt: %d\r\n", gpsTimeInSeconds, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
   uint16_t vbat_mv = BatteryHelper::readVBAT();
 
   // We are done with the sensors, so we can turn them off
@@ -209,20 +207,17 @@ void doGPSFix()
   memset(g_SendLoraData.buffer, 0, LORAWAN_BUFFER_SIZE);
   int size = 0;
   g_SendLoraData.port = 2;
-  g_SendLoraData.buffer[size++] = 0x02; // device
-  g_SendLoraData.buffer[size++] = 0x04; // msg version; 03 has uints for lat/long; 04 has int32
+  g_SendLoraData.buffer[size++] = 0x02;
+  g_SendLoraData.buffer[size++] = 0x05; 
 
   g_SendLoraData.buffer[size++] = vbat_mv >> 8;
   g_SendLoraData.buffer[size++] = vbat_mv;
-  g_SendLoraData.buffer[size++] = 0;
-  g_SendLoraData.buffer[size++] = 0;
 
   g_SendLoraData.buffer[size++] = g_msgcount >> 8;
   g_SendLoraData.buffer[size++] = g_msgcount;
-  uint16_t gpsTimeThing = (uint16_t)gpsTime;
-  SERIAL_LOG("GPS Time in packet: %d", gpsTimeThing);
-  g_SendLoraData.buffer[size++] = gpsTimeThing >> 8;
-  g_SendLoraData.buffer[size++] = gpsTimeThing;
+
+  g_SendLoraData.buffer[size++] = gpsTimeInSeconds >> 8;
+  g_SendLoraData.buffer[size++] = gpsTimeInSeconds;
 
   g_SendLoraData.buffer[size++] = gpsSats;
   g_SendLoraData.buffer[size++] = gpsFixType;
