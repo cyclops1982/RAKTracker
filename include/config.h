@@ -30,8 +30,8 @@ struct ConfigurationParameters
     // This is basically the configuration options we use.
     // They can be updated remotely, although this might not make sense.
     // After restart, we get back to the defaults.
-    uint16_t _sleeptime = 30;      // in seconds
-    uint16_t _gnssFixTimeout = 10; // in seconds
+    uint16_t _sleeptime = 60;      // in seconds
+    uint16_t _gnssFixTimeout = 120; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_BIKE;
     int8_t _loraDataRate = DR_0;
     int8_t _loraTXPower = TX_POWER_5;
