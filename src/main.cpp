@@ -101,36 +101,34 @@ void setup()
   g_taskEvent = xSemaphoreCreateBinary();
   xSemaphoreGive(g_taskEvent);
   g_EventType = EventType::Timer;
-  g_taskWakeupTimer.begin(g_configParams.GetSleepTime(), periodicWakeup);
+  g_taskWakeupTimer.begin(g_configParams.GetSleepTimeInSeconds() * 1000, periodicWakeup);
   g_taskWakeupTimer.start();
 }
 
 void handleReceivedMessage()
 {
-  for (uint8_t i = 0; i < g_rcvdDataLen; i++)
+  /*for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
     char hexstr[3];
     sprintf(hexstr, "%02x", g_rcvdLoRaData[i]);
     SERIAL_LOG("DATA %d: %s", i, hexstr)
-  }
+  }*/
   g_configParams.SetConfig(g_rcvdLoRaData, g_rcvdDataLen);
 
   // Some parameters require some re-initialization, which is what we do here for those cases.
   for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
-    SERIAL_LOG("DATA TO PROCESS: %02x", g_rcvdLoRaData[i]);
     for (size_t x = 0; x < sizeof(g_configs) / sizeof(ConfigOption); x++)
     {
       const ConfigOption *conf = &g_configs[x];
-      SERIAL_LOG("ConfigType: %02x - against %02x", conf->configType, g_rcvdLoRaData[i]);
       if (conf->configType == g_rcvdLoRaData[i])
       {
         switch (g_rcvdLoRaData[i])
         {
         case ConfigType::SleepTime:
-          SERIAL_LOG("Resetting sleeptimer to %u", g_configParams.GetSleepTime());
+          SERIAL_LOG("Resetting sleeptimer to %u", g_configParams.GetSleepTimeInSeconds());
           g_taskWakeupTimer.stop();
-          g_taskWakeupTimer.begin(g_configParams.GetSleepTime(), periodicWakeup);
+          g_taskWakeupTimer.begin(g_configParams.GetSleepTimeInSeconds() * 1000, periodicWakeup);
           g_taskWakeupTimer.start();
           break;
         case ConfigType::GPSDynamicModel:
@@ -171,6 +169,8 @@ void doGPSFix()
     delay(100);
   }
   byte gpsFixType = 0;
+
+  uint32_t gnssTimeout = (uint32_t)g_configParams.GetGNSSFixTimeoutInSeconds() * 1000;
   while (1)
   {
     gpsFixType = g_GNSS.getFixType(); // Get the fix type

@@ -48,8 +48,8 @@ struct ConfigurationParameters
     static void SetBool(const ConfigOption *option, uint8_t *arr);
 
 public:
-    uint32_t GetSleepTime() { return _sleeptime * 1000; }
-    uint16_t GetGNSSFixTimeout() { return _gnssFixTimeout * 1000; }
+    uint32_t GetSleepTimeInSeconds() { return _sleeptime; }
+    uint16_t GetGNSSFixTimeoutInSeconds() { return _gnssFixTimeout; }
     // TODO: make this return `dynModel`. Requires a new Setmethod
     uint8_t GetGNSSDynamicModel() { return _gnssDynamicModel; }
 
