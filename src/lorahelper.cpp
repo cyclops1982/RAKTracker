@@ -17,6 +17,7 @@ void LoraHelper::lorawan_has_joined_handler(void)
 {
     SERIAL_LOG("OTAA Mode, Network Joined!");
     lmh_error_status ret = lmh_class_request(LORAWAN_CLASS);
+
     if (ret == LMH_SUCCESS)
     {
         SERIAL_LOG("Class request status: %d\n", ret);
@@ -121,6 +122,7 @@ void LoraHelper::SetTXPower(int8_t TXPower)
 void LoraHelper::InitAndJoin(int8_t datarate, int8_t TXPower, bool adrEnabled, uint8_t* nodeDeviceEUI, uint8_t* nodeAppEUI, uint8_t* nodeAppKey)
 {
     SERIAL_LOG("Init and Join LoraWAN");
+    
 #ifdef RAK4630
     lora_rak4630_init();
 #elif RAK11310

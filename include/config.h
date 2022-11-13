@@ -30,13 +30,14 @@ struct ConfigurationParameters
     // This is basically the configuration options we use.
     // They can be updated remotely, although this might not make sense.
     // After restart, we get back to the defaults.
-    uint16_t _sleeptime = 60;      // in seconds
-    uint16_t _gnssFixTimeout = 120; // in seconds
-    uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_BIKE;
-    int8_t _loraDataRate = DR_0;
-    int8_t _loraTXPower = TX_POWER_5;
-    bool _loraADREnabled = true;
-    uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
+    uint16_t _sleeptime = 240;      // in seconds
+    uint16_t _gnssFixTimeout = 60; // in seconds
+    uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_PEDESTRIAN;
+    int8_t _loraDataRate = DR_5;
+    int8_t _loraTXPower = TX_POWER_7;
+    bool _loraADREnabled = false;
+    uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1}; //SheepTracker 1
+ //   uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xF5, 0x2B}; //SheepTracker 2
     uint8_t _loraNodeAppEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     uint8_t _loraNodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
     bool _loraRequireConfirmation = true;
