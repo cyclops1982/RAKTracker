@@ -207,8 +207,10 @@ void doGPSFix()
   memset(g_SendLoraData.buffer, 0, LORAWAN_BUFFER_SIZE);
   int size = 0;
   g_SendLoraData.port = 2;
-  g_SendLoraData.buffer[size++] = 0x02;
-  g_SendLoraData.buffer[size++] = 0x05; 
+  g_SendLoraData.buffer[size++] = 0x03;
+  g_SendLoraData.buffer[size++] = 0x04; 
+
+  
 
   g_SendLoraData.buffer[size++] = vbat_mv >> 8;
   g_SendLoraData.buffer[size++] = vbat_mv;
