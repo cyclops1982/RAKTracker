@@ -24,10 +24,6 @@ void LedHelper::init()
 void LedHelper::BlinkDelay(int ledpin, int waittime)
 {
     init();
-    if (ledpin != LED_BLUE && ledpin != LED_GREEN)
-    {
-        delay(waittime * 2);
-    }
     digitalWrite(ledpin, HIGH);
     delay(waittime);
     digitalWrite(ledpin, LOW);
