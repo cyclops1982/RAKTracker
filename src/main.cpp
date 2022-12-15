@@ -104,6 +104,36 @@ void setup()
   g_taskWakeupTimer.start();
 }
 
+bool SendData()
+{
+  if (!lorawan_joined)
+  {
+    // Lora stuff
+    LoraHelper::InitAndJoin(g_configParams.GetLoraDataRate(), g_configParams.GetLoraTXPower(), g_configParams.GetLoraADREnabled(),
+                            g_configParams.GetLoraDevEUI(), g_configParams.GetLoraNodeAppEUI(), g_configParams.GetLoraAppKey());
+  }
+  if (lorawan_joined)
+  {
+    lmh_error_status loraSendState = lmh_send(&g_SendLoraData, (lmh_confirm)g_configParams.GetLoraRequireConfirmation());
+
+    if (loraSendState == LMH_SUCCESS)
+    {
+      SERIAL_LOG("LoRaSend ok");
+      return true;
+    }
+    else
+    {
+      SERIAL_LOG("LorRaSend failed: %d\n", loraSendState);
+      return false;
+    }
+  }
+  else
+  {
+    SERIAL_LOG("SKIPPING SEND - We are not joined to a network");
+  }
+  return false;
+}
+
 void handleReceivedMessage()
 {
   /*for (uint8_t i = 0; i < g_rcvdDataLen; i++)
@@ -191,7 +221,7 @@ void doGPSFix()
 
     SERIAL_LOG("FixType: %d", gpsFixType);
   }
-  uint16_t gpsTimeInSeconds = (uint16_t) ((millis() - gpsStart)/1000);
+  uint16_t gpsTimeInSeconds = (uint16_t)((millis() - gpsStart) / 1000);
   int32_t gpsLat = g_GNSS.getLatitude();
   int32_t gpsLong = g_GNSS.getLongitude();
   uint8_t gpsSats = g_GNSS.getSIV();
@@ -208,9 +238,7 @@ void doGPSFix()
   int size = 0;
   g_SendLoraData.port = 2;
   g_SendLoraData.buffer[size++] = 0x03;
-  g_SendLoraData.buffer[size++] = 0x04; 
-
-  
+  g_SendLoraData.buffer[size++] = 0x04;
 
   g_SendLoraData.buffer[size++] = vbat_mv >> 8;
   g_SendLoraData.buffer[size++] = vbat_mv;
@@ -239,18 +267,7 @@ void doGPSFix()
 
   g_SendLoraData.buffsize = size;
 
-  lmh_error_status loraSendState = LMH_ERROR;
-  loraSendState = lmh_send(&g_SendLoraData, (lmh_confirm)g_configParams.GetLoraRequireConfirmation());
-#if !MAX_SAVE
-  if (loraSendState == LMH_SUCCESS)
-  {
-    Serial.println("lmh_send ok");
-  }
-  else
-  {
-    Serial.printf("lmh_send failed: %d\n", loraSendState);
-  }
-#endif
+  SendData();
 
   g_msgcount++;
 };
