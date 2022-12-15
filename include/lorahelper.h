@@ -14,7 +14,6 @@
 
 static uint8_t g_sendLoraDataBuffer[LORAWAN_BUFFER_SIZE];                  //< Lora user application data buffer.
 static lmh_app_data_t g_SendLoraData = {g_sendLoraDataBuffer, 0, 0, 0, 0}; //< Lora user application data structure.
-static bool lorawan_joined;
 
 
 struct LoraHelper

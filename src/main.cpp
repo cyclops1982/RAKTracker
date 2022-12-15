@@ -16,6 +16,7 @@ SemaphoreHandle_t g_taskEvent = NULL;
 EventType g_EventType = EventType::None;
 uint8_t g_rcvdLoRaData[LORAWAN_BUFFER_SIZE];
 uint8_t g_rcvdDataLen = 0;
+bool g_lorawan_joined = false;
 
 void periodicWakeup(TimerHandle_t unused)
 {
@@ -106,13 +107,13 @@ void setup()
 
 bool SendData()
 {
-  if (!lorawan_joined)
+  if (!g_lorawan_joined)
   {
-    // Lora stuff
+    SERIAL_LOG("Lora not joined yet while trying to send. Joining now.");
     LoraHelper::InitAndJoin(g_configParams.GetLoraDataRate(), g_configParams.GetLoraTXPower(), g_configParams.GetLoraADREnabled(),
                             g_configParams.GetLoraDevEUI(), g_configParams.GetLoraNodeAppEUI(), g_configParams.GetLoraAppKey());
   }
-  if (lorawan_joined)
+  if (g_lorawan_joined)
   {
     lmh_error_status loraSendState = lmh_send(&g_SendLoraData, (lmh_confirm)g_configParams.GetLoraRequireConfirmation());
 
