@@ -7,6 +7,8 @@
 #include "serialhelper.h"
 #include "main.h"
 #include "config.h"
+#include "motion.h"
+
 
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
@@ -17,6 +19,11 @@ EventType g_EventType = EventType::None;
 uint8_t g_rcvdLoRaData[LORAWAN_BUFFER_SIZE];
 uint8_t g_rcvdDataLen = 0;
 bool g_lorawan_joined = false;
+
+#ifdef MOTION_ENABLED
+LIS3DH g_motionsensor(I2C_MODE, 0x18);
+#endif
+
 
 void periodicWakeup(TimerHandle_t unused)
 {
@@ -93,6 +100,50 @@ void setup()
   SERIAL_LOG("PowerSave on GNSS: %d", powerSave);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
 
+  #ifdef MOTION_ENABLED
+  SERIAL_LOG("Starting motion sensor initialization")
+
+
+  Wire.begin();
+  delay(1000);
+
+  g_motionsensor.settings.tempEnabled = 0;
+  g_motionsensor.settings.adcEnabled = 0;
+  if (g_motionsensor.begin() != 0)
+  {
+    Serial.println("Problem starting the sensor at 0x18.");
+  }
+  else
+  {
+    Serial.println("Sensor at 0x18 started.");
+  }
+
+  // configurations for control registers
+  
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, 0); // power it down.
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG0, LIS3DHEnums::CTRL_REG0::PullUpDisconnected);
+  delay(1000);
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, (LIS3DHEnums::CTRL_REG1::ORD1 | LIS3DHEnums::CTRL_REG1::LPen | LIS3DHEnums::CTRL_REG1::XYZen));
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG2, (LIS3DHEnums::CTRL_REG2::HP_IA1 | LIS3DHEnums::CTRL_REG2::HP_IA2));
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG3, (LIS3DHEnums::CTRL_REG3::I1_IA1));
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG4, LIS3DHEnums::CTRL_REG4::FS_2G);
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG5, 0);
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG6, (LIS3DHEnums::CTRL_REG6::I2_IA2));
+  g_motionsensor.writeRegister(LIS3DH_REFERENCE, 0);
+
+  g_motionsensor.writeRegister(LIS3DH_INT1_THS, 0x04);      // Threshold (THS) = 0000 0001 = 1 LSBs * 15.625mg = 16mg
+  g_motionsensor.writeRegister(LIS3DH_INT1_DURATION, 0x01); // Duration = 1LSBs * (1/10Hz) = 0.1s.
+  g_motionsensor.writeRegister(LIS3DH_INT1_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE) );
+  g_motionsensor.writeRegister(LIS3DH_INT2_THS, 0x50);      // Threshold (THS) = 0001 0000 = 16 LSBs * 15.625mg/LSB = 250mg.
+  g_motionsensor.writeRegister(LIS3DH_INT2_DURATION, 0x01); // Duration = 1LSBs * (1/100Hz) = 0.1s.
+  g_motionsensor.writeRegister(LIS3DH_INT2_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE));
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG5, (LIS3DHEnums::CTRL_REG5::LIR_INT1 | LIS3DHEnums::CTRL_REG5::LIR_INT2));
+
+  uint8_t dummy = 0;
+  g_motionsensor.readRegister(&dummy, LIS3DH_REFERENCE);
+
+
+  #endif
   // Lora stuff
   LoraHelper::InitAndJoin(g_configParams.GetLoraDataRate(), g_configParams.GetLoraTXPower(), g_configParams.GetLoraADREnabled(),
                           g_configParams.GetLoraDevEUI(), g_configParams.GetLoraNodeAppEUI(), g_configParams.GetLoraAppKey());
