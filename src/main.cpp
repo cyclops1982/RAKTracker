@@ -101,44 +101,7 @@ void setup()
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
 
   #ifdef MOTION_ENABLED
-  SERIAL_LOG("Starting motion sensor initialization")
-
-
-  Wire.begin();
-  delay(1000);
-
-  if (g_motionsensor.begin(false) != 0)
-  {
-    Serial.println("Problem starting the sensor at 0x18.");
-  }
-  else
-  {
-    Serial.println("Sensor at 0x18 started.");
-  }
-
-  // configurations for control registers
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, 0); // power it down.
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG0, LIS3DHEnums::CTRL_REG0::PullUpDisconnected);
-  delay(1000);
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, (LIS3DHEnums::CTRL_REG1::ORD1 | LIS3DHEnums::CTRL_REG1::LPen | LIS3DHEnums::CTRL_REG1::XYZen)); // 10Hz, Low Power = 3 μA.
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG2, (LIS3DHEnums::CTRL_REG2::HP_IA1 | LIS3DHEnums::CTRL_REG2::HP_IA2));
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG3, (LIS3DHEnums::CTRL_REG3::I1_IA1));
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG4, LIS3DHEnums::CTRL_REG4::FS_2G);
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG5, 0);
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG6, (LIS3DHEnums::CTRL_REG6::I2_IA2));
-  g_motionsensor.writeRegister(LIS3DH_REFERENCE, 0);
-
-  // TODO: These THS's and durations should be configurable 
-  g_motionsensor.writeRegister(LIS3DH_INT1_THS, g_configParams.GetMotion1stThreshold());      // Threshold (THS) = 0000 0100 = 4 * 15.625mg
-  g_motionsensor.writeRegister(LIS3DH_INT1_DURATION, g_configParams.GetMotion1stDuration()); // Duration = 1LSBs * (1/10Hz) = 0.1s.
-  g_motionsensor.writeRegister(LIS3DH_INT1_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE));
-  g_motionsensor.writeRegister(LIS3DH_INT2_THS, g_configParams.GetMotion2ndThreshold());      // Threshold (THS)
-  g_motionsensor.writeRegister(LIS3DH_INT2_DURATION, g_configParams.GetMotion2ndDuration()); // Duration = 1LSBs * (1/100Hz) = 0.1s.
-  g_motionsensor.writeRegister(LIS3DH_INT2_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE));
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG5, (LIS3DHEnums::CTRL_REG5::LIR_INT1 | LIS3DHEnums::CTRL_REG5::LIR_INT2));
-
-  uint8_t dummy = 0;
-  g_motionsensor.readRegister(&dummy, LIS3DH_REFERENCE); // reset to current position on initialize.
+  initMotionSensor();
   #endif
 
   // Lora stuff
@@ -151,6 +114,42 @@ void setup()
   g_EventType = EventType::Timer;
   g_taskWakeupTimer.begin(g_configParams.GetSleepTimeInSeconds() * 1000, periodicWakeup);
   g_taskWakeupTimer.start();
+}
+
+void initMotionSensor() {
+
+  status_t motionresult = g_motionsensor.begin(false);
+
+  if (motionresult != 0)
+  {
+    SERIAL_LOG("Failed to start motion sensor: %d", motionresult);
+    LedHelper::BlinkHalt();
+  }
+
+  // configurations for control registers
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, 0); // power it down.
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG0, LIS3DHEnums::CTRL_REG0::PullUpDisconnected);
+  delay(250);
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, (LIS3DHEnums::CTRL_REG1::ORD1 | LIS3DHEnums::CTRL_REG1::LPen | LIS3DHEnums::CTRL_REG1::XYZen)); // 10Hz, Low Power = 3 μA.
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG2, (LIS3DHEnums::CTRL_REG2::HP_IA1 | LIS3DHEnums::CTRL_REG2::HP_IA2));
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG3, (LIS3DHEnums::CTRL_REG3::I1_IA1));
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG4, LIS3DHEnums::CTRL_REG4::FS_2G); // 16mg
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG5, 0);
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG6, (LIS3DHEnums::CTRL_REG6::I2_IA2));
+  g_motionsensor.writeRegister(LIS3DH_REFERENCE, 0);
+
+  g_motionsensor.writeRegister(LIS3DH_INT1_THS, g_configParams.GetMotion1stThreshold());      // Threshold is value * REG4, so for us * 16mg
+  g_motionsensor.writeRegister(LIS3DH_INT1_DURATION, g_configParams.GetMotion1stDuration()); 
+  g_motionsensor.writeRegister(LIS3DH_INT1_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE));
+  g_motionsensor.writeRegister(LIS3DH_INT2_THS, g_configParams.GetMotion2ndThreshold());     
+  g_motionsensor.writeRegister(LIS3DH_INT2_DURATION, g_configParams.GetMotion2ndDuration());
+  g_motionsensor.writeRegister(LIS3DH_INT2_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE));
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG5, (LIS3DHEnums::CTRL_REG5::LIR_INT1 | LIS3DHEnums::CTRL_REG5::LIR_INT2));
+
+  uint8_t dummy = 0;
+  g_motionsensor.readRegister(&dummy, LIS3DH_REFERENCE); // reset to current position on initialize.
+
+  SERIAL_LOG("Motion sensor initialized");
 }
 
 bool SendData()
@@ -231,7 +230,7 @@ void handleReceivedMessage()
   }
 }
 
-void doGPSFix()
+void doPeriodicUpdate()
 {
   SERIAL_LOG("Doing GPSFix");
   digitalWrite(WB_IO2, HIGH);
@@ -279,6 +278,21 @@ void doGPSFix()
   SERIAL_LOG("GPS details: GPStime: %us; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d; Alt: %d\r\n", gpsTimeInSeconds, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
   uint16_t vbat_mv = BatteryHelper::readVBAT();
 
+  uint8_t motionresult = 0;
+  #ifdef MOTION_ENABLED
+  uint8_t motionint1data=0, motionint2data=0;
+  g_motionsensor.readRegister(&motionint1data, LIS3DH_INT1_SRC);
+  g_motionsensor.readRegister(&motionint2data, LIS3DH_INT2_SRC);
+  if ((motionint1data & LIS3DHEnums::INT_SRC::IA) == LIS3DHEnums::INT_SRC::IA)
+  {
+    motionresult = motionresult | 0x01;
+  }
+  if ((motionint2data & LIS3DHEnums::INT_SRC::IA) == LIS3DHEnums::INT_SRC::IA)
+  {
+    motionresult = motionresult | 0x10;
+  }
+  #endif 
+
   // We are done with the sensors, so we can turn them off
   digitalWrite(WB_IO2, LOW);
 
@@ -314,6 +328,9 @@ void doGPSFix()
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL >> 8;
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL;
 
+  // Add motionresult
+  g_SendLoraData.buffer[size++] = motionresult;
+
   g_SendLoraData.buffsize = size;
 
   SendData();
@@ -336,7 +353,7 @@ void loop()
       handleReceivedMessage();
       break;
     case EventType::Timer:
-      doGPSFix();
+      doPeriodicUpdate();
       break;
     case EventType::None:
     default:

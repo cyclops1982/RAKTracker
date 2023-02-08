@@ -16,4 +16,6 @@ extern uint8_t g_rcvdLoRaData[];
 extern uint8_t g_rcvdDataLen;
 extern bool g_lorawan_joined;
 
+void initMotionSensor();
+
 #endif
