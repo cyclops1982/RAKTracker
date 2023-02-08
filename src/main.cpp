@@ -107,9 +107,7 @@ void setup()
   Wire.begin();
   delay(1000);
 
-  g_motionsensor.settings.tempEnabled = 0;
-  g_motionsensor.settings.adcEnabled = 0;
-  if (g_motionsensor.begin() != 0)
+  if (g_motionsensor.begin(false) != 0)
   {
     Serial.println("Problem starting the sensor at 0x18.");
   }
@@ -119,11 +117,10 @@ void setup()
   }
 
   // configurations for control registers
-  
   g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, 0); // power it down.
   g_motionsensor.writeRegister(LIS3DH_CTRL_REG0, LIS3DHEnums::CTRL_REG0::PullUpDisconnected);
   delay(1000);
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, (LIS3DHEnums::CTRL_REG1::ORD1 | LIS3DHEnums::CTRL_REG1::LPen | LIS3DHEnums::CTRL_REG1::XYZen));
+  g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, (LIS3DHEnums::CTRL_REG1::ORD1 | LIS3DHEnums::CTRL_REG1::LPen | LIS3DHEnums::CTRL_REG1::XYZen)); // 10Hz, Low Power = 3 μA.
   g_motionsensor.writeRegister(LIS3DH_CTRL_REG2, (LIS3DHEnums::CTRL_REG2::HP_IA1 | LIS3DHEnums::CTRL_REG2::HP_IA2));
   g_motionsensor.writeRegister(LIS3DH_CTRL_REG3, (LIS3DHEnums::CTRL_REG3::I1_IA1));
   g_motionsensor.writeRegister(LIS3DH_CTRL_REG4, LIS3DHEnums::CTRL_REG4::FS_2G);
@@ -131,19 +128,19 @@ void setup()
   g_motionsensor.writeRegister(LIS3DH_CTRL_REG6, (LIS3DHEnums::CTRL_REG6::I2_IA2));
   g_motionsensor.writeRegister(LIS3DH_REFERENCE, 0);
 
-  g_motionsensor.writeRegister(LIS3DH_INT1_THS, 0x04);      // Threshold (THS) = 0000 0001 = 1 LSBs * 15.625mg = 16mg
-  g_motionsensor.writeRegister(LIS3DH_INT1_DURATION, 0x01); // Duration = 1LSBs * (1/10Hz) = 0.1s.
-  g_motionsensor.writeRegister(LIS3DH_INT1_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE) );
-  g_motionsensor.writeRegister(LIS3DH_INT2_THS, 0x50);      // Threshold (THS) = 0001 0000 = 16 LSBs * 15.625mg/LSB = 250mg.
-  g_motionsensor.writeRegister(LIS3DH_INT2_DURATION, 0x01); // Duration = 1LSBs * (1/100Hz) = 0.1s.
+  // TODO: These THS's and durations should be configurable 
+  g_motionsensor.writeRegister(LIS3DH_INT1_THS, g_configParams.GetMotion1stThreshold());      // Threshold (THS) = 0000 0100 = 4 * 15.625mg
+  g_motionsensor.writeRegister(LIS3DH_INT1_DURATION, g_configParams.GetMotion1stDuration()); // Duration = 1LSBs * (1/10Hz) = 0.1s.
+  g_motionsensor.writeRegister(LIS3DH_INT1_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE));
+  g_motionsensor.writeRegister(LIS3DH_INT2_THS, g_configParams.GetMotion2ndThreshold());      // Threshold (THS)
+  g_motionsensor.writeRegister(LIS3DH_INT2_DURATION, g_configParams.GetMotion2ndDuration()); // Duration = 1LSBs * (1/100Hz) = 0.1s.
   g_motionsensor.writeRegister(LIS3DH_INT2_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE));
   g_motionsensor.writeRegister(LIS3DH_CTRL_REG5, (LIS3DHEnums::CTRL_REG5::LIR_INT1 | LIS3DHEnums::CTRL_REG5::LIR_INT2));
 
   uint8_t dummy = 0;
-  g_motionsensor.readRegister(&dummy, LIS3DH_REFERENCE);
-
-
+  g_motionsensor.readRegister(&dummy, LIS3DH_REFERENCE); // reset to current position on initialize.
   #endif
+
   // Lora stuff
   LoraHelper::InitAndJoin(g_configParams.GetLoraDataRate(), g_configParams.GetLoraTXPower(), g_configParams.GetLoraADREnabled(),
                           g_configParams.GetLoraDevEUI(), g_configParams.GetLoraNodeAppEUI(), g_configParams.GetLoraAppKey());

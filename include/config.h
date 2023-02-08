@@ -14,7 +14,11 @@ enum ConfigType
     LORA_TXPower = 0x40,
     LORA_DataRate = 0x41,
     LORA_ADREnabled = 0x42,
-    LORA_RequireConfirmation = 0x43
+    LORA_RequireConfirmation = 0x43,
+    MOTION_1stThreshold = 0x51,
+    MOTION_2ndThreshold = 0x52,
+    MOTION_1stDuration = 0x53,
+    MOTION_2ndDuration = 0x54
 };
 
 struct ConfigOption
@@ -48,6 +52,11 @@ struct ConfigurationParameters
     uint8_t _loraNodeAppEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     bool _loraRequireConfirmation = true;
 
+    uint8_t _motion1stDuration = 0x01;
+    uint8_t _motion2ndDuration = 0x01;
+    uint8_t _motion1stThreshold = 0x04;
+    uint8_t _motion2ndThreshold = 0x40;
+
     static void SetUint32(const ConfigOption *option, uint8_t *arr);
     static void SetUint16(const ConfigOption *option, uint8_t *arr);
     static void SetUint8(const ConfigOption *option, uint8_t *arr);
@@ -67,6 +76,12 @@ public:
     uint8_t *GetLoraNodeAppEUI() { return _loraNodeAppEUI; }
     uint8_t *GetLoraAppKey() { return _loraNodeAppKey; }
     bool GetLoraRequireConfirmation() { return _loraRequireConfirmation; }
+
+    uint8_t GetMotion1stDuration() { return _motion1stDuration; }
+    uint8_t GetMotion2ndDuration() { return _motion2ndDuration; }
+    
+    uint8_t GetMotion1stThreshold() { return _motion1stThreshold; }
+    uint8_t GetMotion2ndThreshold() { return _motion2ndThreshold; }
     void SetConfig(uint8_t *array, uint8_t length);
 
 } g_configParams;
@@ -79,6 +94,10 @@ static const ConfigOption g_configs[] = {
     {"LoraWAN - DataRate", ConfigType::LORA_DataRate, sizeof(g_configParams._loraDataRate), &g_configParams._loraDataRate, ConfigurationParameters::SetInt8},
     {"LoraWAN - ADR Enabled", ConfigType::LORA_ADREnabled, sizeof(g_configParams._loraADREnabled), &g_configParams._loraADREnabled, ConfigurationParameters::SetBool},
     {"LoraWAN - Require confirmation message", ConfigType::LORA_RequireConfirmation, sizeof(g_configParams._loraRequireConfirmation), &g_configParams._loraRequireConfirmation, ConfigurationParameters::SetBool},
+    {"Motion - 1st interrupt duration", ConfigType::MOTION_1stDuration, sizeof(g_configParams._motion1stDuration), &g_configParams._motion1stDuration, ConfigurationParameters::SetUint8},
+    {"Motion - 2nd interrupt duration", ConfigType::MOTION_2ndDuration, sizeof(g_configParams._motion2ndDuration), &g_configParams._motion2ndDuration, ConfigurationParameters::SetUint8},
+    {"Motion - 1st interrupt threshold (0 == disabled)", ConfigType::MOTION_1stThreshold, sizeof(g_configParams._motion1stThreshold), &g_configParams._motion1stThreshold, ConfigurationParameters::SetUint8},
+    {"Motion - 2nd interrupt threshold (0 == disabled)", ConfigType::MOTION_2ndThreshold, sizeof(g_configParams._motion2ndThreshold), &g_configParams._motion2ndThreshold, ConfigurationParameters::SetUint8},
 };
 
 void ConfigurationParameters::SetUint32(const ConfigOption *option, uint8_t *arr)
