@@ -30,7 +30,7 @@ void setup()
   delay(1000); // For whatever reason, some pins/things are not available at startup right away. So we wait 3 seconds for stuff to warm up or something
   LedHelper::init();
   // Initialize serial for output.
-#if !MAX_SAVE
+#ifndef MAX_SAVE
   time_t timeout = millis();
   Serial.begin(115200);
   // check if serial has become available and if not, just wait for it.
@@ -314,7 +314,7 @@ void loop()
   {
     SERIAL_LOG("Running loop for EventType: %d", g_EventType);
 
-#if MAX_SAVE == false
+#ifndef MAX_SAVE
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
 #endif
     switch (g_EventType)
@@ -331,7 +331,7 @@ void loop()
       break;
     };
 
-#if MAX_SAVE == false
+#ifndef MAX_SAVE
     digitalWrite(LED_GREEN, LOW);
 #endif
   }
