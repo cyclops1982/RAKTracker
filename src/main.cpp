@@ -9,7 +9,6 @@
 #include "config.h"
 #include "motion.h"
 
-
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
@@ -104,9 +103,11 @@ void setup()
   initMotionSensor();
   #endif
 
+#ifndef LORAWAN_FAKE
   // Lora stuff
   LoraHelper::InitAndJoin(g_configParams.GetLoraDataRate(), g_configParams.GetLoraTXPower(), g_configParams.GetLoraADREnabled(),
                           g_configParams.GetLoraDevEUI(), g_configParams.GetLoraNodeAppEUI(), g_configParams.GetLoraAppKey());
+#endif
 
   // Go into sleep mode
   g_taskEvent = xSemaphoreCreateBinary();
@@ -116,44 +117,9 @@ void setup()
   g_taskWakeupTimer.start();
 }
 
-void initMotionSensor() {
-
-  status_t motionresult = g_motionsensor.begin(false);
-
-  if (motionresult != 0)
-  {
-    SERIAL_LOG("Failed to start motion sensor: %d", motionresult);
-    LedHelper::BlinkHalt();
-  }
-
-  // configurations for control registers
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, 0); // power it down.
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG0, LIS3DHEnums::CTRL_REG0::PullUpDisconnected);
-  delay(250);
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, (LIS3DHEnums::CTRL_REG1::ORD1 | LIS3DHEnums::CTRL_REG1::LPen | LIS3DHEnums::CTRL_REG1::XYZen)); // 10Hz, Low Power = 3 μA.
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG2, (LIS3DHEnums::CTRL_REG2::HP_IA1 | LIS3DHEnums::CTRL_REG2::HP_IA2));
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG3, (LIS3DHEnums::CTRL_REG3::I1_IA1));
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG4, LIS3DHEnums::CTRL_REG4::FS_2G); // 16mg
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG5, 0);
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG6, (LIS3DHEnums::CTRL_REG6::I2_IA2));
-  g_motionsensor.writeRegister(LIS3DH_REFERENCE, 0);
-
-  g_motionsensor.writeRegister(LIS3DH_INT1_THS, g_configParams.GetMotion1stThreshold());      // Threshold is value * REG4, so for us * 16mg
-  g_motionsensor.writeRegister(LIS3DH_INT1_DURATION, g_configParams.GetMotion1stDuration()); 
-  g_motionsensor.writeRegister(LIS3DH_INT1_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE));
-  g_motionsensor.writeRegister(LIS3DH_INT2_THS, g_configParams.GetMotion2ndThreshold());     
-  g_motionsensor.writeRegister(LIS3DH_INT2_DURATION, g_configParams.GetMotion2ndDuration());
-  g_motionsensor.writeRegister(LIS3DH_INT2_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE));
-  g_motionsensor.writeRegister(LIS3DH_CTRL_REG5, (LIS3DHEnums::CTRL_REG5::LIR_INT1 | LIS3DHEnums::CTRL_REG5::LIR_INT2));
-
-  uint8_t dummy = 0;
-  g_motionsensor.readRegister(&dummy, LIS3DH_REFERENCE); // reset to current position on initialize.
-
-  SERIAL_LOG("Motion sensor initialized");
-}
-
 bool SendData()
 {
+#ifndef LORAWAN_FAKE
   if (!g_lorawan_joined)
   {
     SERIAL_LOG("Lora not joined yet while trying to send. Joining now.");
@@ -180,6 +146,14 @@ bool SendData()
     SERIAL_LOG("SKIPPING SEND - We are not joined to a network");
   }
   return false;
+#else
+  SERIAL_LOG("NOT SENDING lorawan packages as we have LORAWAN_FAKE set. Data that would be send:");
+  for (uint8_t x = 0; x < g_SendLoraData.buffsize; x++)
+  {
+    SERIAL_LOG("%d: 0x%02X", x, g_SendLoraData.buffer[x]);
+  }
+  return true;
+#endif
 }
 
 void handleReceivedMessage()
@@ -187,7 +161,7 @@ void handleReceivedMessage()
   /*for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
     char hexstr[3];
-    sprintf(hexstr, "%02x", g_rcvdLoRaData[i]);
+    sprintf(hexstr, "0x%02X", g_rcvdLoRaData[i]);
     SERIAL_LOG("DATA %d: %s", i, hexstr)
   }*/
   g_configParams.SetConfig(g_rcvdLoRaData, g_rcvdDataLen);
