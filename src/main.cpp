@@ -19,11 +19,6 @@ uint8_t g_rcvdLoRaData[LORAWAN_BUFFER_SIZE];
 uint8_t g_rcvdDataLen = 0;
 bool g_lorawan_joined = false;
 
-#ifdef MOTION_ENABLED
-LIS3DH g_motionsensor(I2C_MODE, 0x18);
-#endif
-
-
 void periodicWakeup(TimerHandle_t unused)
 {
   // Give the semaphore, so the loop task will wake up
@@ -99,9 +94,11 @@ void setup()
   SERIAL_LOG("PowerSave on GNSS: %d", powerSave);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
 
-  #ifdef MOTION_ENABLED
-  initMotionSensor();
-  #endif
+  MotionHelper::InitMotionSensor(
+      g_configParams.GetMotion1stThreshold(),
+      g_configParams.GetMotion2ndThreshold(),
+      g_configParams.GetMotion1stDuration(),
+      g_configParams.GetMotion2ndDuration());
 
 #ifndef LORAWAN_FAKE
   // Lora stuff
@@ -196,6 +193,18 @@ void handleReceivedMessage()
           SERIAL_LOG("Setting Lora TX Power to %d", g_configParams.GetLoraTXPower());
           LoraHelper::SetTXPower(g_configParams.GetLoraTXPower());
           break;
+        case ConfigType::MOTION_1stDuration:
+        case ConfigType::MOTION_2ndDuration:
+        case ConfigType::MOTION_1stThreshold:
+        case ConfigType::MOTION_2ndThreshold:
+          SERIAL_LOG("Setting motion sensor to 1/2nd threshold & 1/2nd duration: 0x%02X/0x%02X & 0x%02X/0x%02X",
+                     g_configParams.GetMotion1stThreshold(), g_configParams.GetMotion2ndThreshold(), g_configParams.GetMotion1stDuration(), g_configParams.GetMotion2ndDuration());
+          MotionHelper::InitMotionSensor(
+              g_configParams.GetMotion1stThreshold(),
+              g_configParams.GetMotion2ndThreshold(),
+              g_configParams.GetMotion1stDuration(),
+              g_configParams.GetMotion2ndDuration());
+          break;
         }
         i += conf->sizeOfOption; // jump to the next one
         break;
@@ -252,20 +261,7 @@ void doPeriodicUpdate()
   SERIAL_LOG("GPS details: GPStime: %us; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d; Alt: %d\r\n", gpsTimeInSeconds, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
   uint16_t vbat_mv = BatteryHelper::readVBAT();
 
-  uint8_t motionresult = 0;
-  #ifdef MOTION_ENABLED
-  uint8_t motionint1data=0, motionint2data=0;
-  g_motionsensor.readRegister(&motionint1data, LIS3DH_INT1_SRC);
-  g_motionsensor.readRegister(&motionint2data, LIS3DH_INT2_SRC);
-  if ((motionint1data & LIS3DHEnums::INT_SRC::IA) == LIS3DHEnums::INT_SRC::IA)
-  {
-    motionresult = motionresult | 0x01;
-  }
-  if ((motionint2data & LIS3DHEnums::INT_SRC::IA) == LIS3DHEnums::INT_SRC::IA)
-  {
-    motionresult = motionresult | 0x10;
-  }
-  #endif 
+  uint8_t motionresult = MotionHelper::GetMotionInterupts();
 
   // We are done with the sensors, so we can turn them off
   digitalWrite(WB_IO2, LOW);
