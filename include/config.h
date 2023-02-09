@@ -36,8 +36,8 @@ struct ConfigurationParameters
     // the rak thigns don't have permanent storage, and thus we need to code them into the software.
     // Some of the settings can be updated remotely.  See ConfigType above and/or g_configs below for a list
     // of those.
-    uint16_t _sleeptime = 300;      // in seconds
-    uint16_t _gnssFixTimeout = 60; // in seconds
+    uint16_t _sleeptime = 60;      // in seconds
+    uint16_t _gnssFixTimeout = 10; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_PEDESTRIAN;
     int8_t _loraDataRate = DR_2;
     int8_t _loraTXPower = TX_POWER_3;
