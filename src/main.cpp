@@ -263,9 +263,7 @@ void doPeriodicUpdate()
   SERIAL_LOG("GPS details: GPStime: %us; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d; Alt: %d\r\n", gpsTimeInSeconds, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
   uint16_t vbat_mv = BatteryHelper::readVBAT();
 
-  #ifdef MOTION_ENABLED
   uint8_t motionresult = MotionHelper::GetMotionInterupts();
-  #endif
 
   // We are done with the sensors, so we can turn them off
   digitalWrite(WB_IO2, LOW);
@@ -276,7 +274,7 @@ void doPeriodicUpdate()
   g_SendLoraData.port = 2;
   g_SendLoraData.buffer[size++] = 0x03;
   #ifdef MOTION_ENABLED
-  g_SendLoraData.buffer[size++] = 0x01;
+  g_SendLoraData.buffer[size++] = 0x06;
   #else 
   g_SendLoraData.buffer[size++] = 0x05;
   #endif
