@@ -48,6 +48,8 @@ void setup()
 #endif
   SERIAL_LOG("Setup start.");
   delay(1000);
+  // Create semaphore for task handling.
+  g_taskEvent = xSemaphoreCreateBinary();
 
   // Turn on power to sensors
   pinMode(WB_IO2, OUTPUT);
@@ -107,7 +109,6 @@ void setup()
 #endif
 
   // Go into sleep mode
-  g_taskEvent = xSemaphoreCreateBinary();
   xSemaphoreGive(g_taskEvent);
   g_EventType = EventType::Timer;
   g_taskWakeupTimer.begin(g_configParams.GetSleepTimeInSeconds() * 1000, periodicWakeup);
