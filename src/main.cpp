@@ -274,8 +274,12 @@ void doPeriodicUpdate()
   memset(g_SendLoraData.buffer, 0, LORAWAN_BUFFER_SIZE);
   int size = 0;
   g_SendLoraData.port = 2;
+  g_SendLoraData.buffer[size++] = 0x03;
+  #ifdef MOTION_ENABLED
   g_SendLoraData.buffer[size++] = 0x01;
-  g_SendLoraData.buffer[size++] = 0x01;
+  #else 
+  g_SendLoraData.buffer[size++] = 0x05;
+  #endif
 
   g_SendLoraData.buffer[size++] = vbat_mv >> 8;
   g_SendLoraData.buffer[size++] = vbat_mv;
@@ -303,7 +307,9 @@ void doPeriodicUpdate()
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL;
 
   // Add motionresult
+  #ifdef MOTION_ENABLED
   g_SendLoraData.buffer[size++] = motionresult;
+  #endif
 
   g_SendLoraData.buffsize = size;
 
