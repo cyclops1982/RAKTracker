@@ -6,14 +6,19 @@
 #include "serialhelper.h"
 #include "ledhelper.h"
 
-#define MOTION_ENABLED
+//#define MOTION_DISABLED
 
-#ifdef MOTION_ENABLED
-
+#ifndef MOTION_DISABLED
 class MotionHelper {
     public:
+        /// @brief This initializes and/or updates the motion sensor. It turns off when both thresholds are 0 (zero). 
+        /// @param firstThreshold 
+        /// @param secondThreshold 
+        /// @param firstDuration 
+        /// @param secondDuration 
         static void InitMotionSensor(uint8_t firstThreshold, uint8_t secondThreshold, uint8_t firstDuration, uint8_t secondDuration);
         static uint8_t GetMotionInterupts();
+        static bool IsMotionEnabled();
 
 };
 #else
@@ -23,6 +28,7 @@ class MotionHelper {
         static uint8_t GetMotionInterupts() {
             return 0xFF;
         };
+        static bool IsMotionEnabled() { return false; };
 
 };
 

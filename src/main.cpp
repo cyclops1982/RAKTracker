@@ -273,11 +273,14 @@ void doPeriodicUpdate()
   int size = 0;
   g_SendLoraData.port = 2;
   g_SendLoraData.buffer[size++] = 0x03;
-  #ifdef MOTION_ENABLED
-  g_SendLoraData.buffer[size++] = 0x06;
-  #else 
-  g_SendLoraData.buffer[size++] = 0x05;
-  #endif
+  if (MotionHelper::IsMotionEnabled())
+  {
+    g_SendLoraData.buffer[size++] = 0x06;
+  }
+  else
+  {
+    g_SendLoraData.buffer[size++] = 0x04;
+  }
 
   g_SendLoraData.buffer[size++] = vbat_mv >> 8;
   g_SendLoraData.buffer[size++] = vbat_mv;
@@ -305,9 +308,10 @@ void doPeriodicUpdate()
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL;
 
   // Add motionresult
-  #ifdef MOTION_ENABLED
-  g_SendLoraData.buffer[size++] = motionresult;
-  #endif
+  if (MotionHelper::IsMotionEnabled())
+  {
+    g_SendLoraData.buffer[size++] = motionresult;
+  }
 
   g_SendLoraData.buffsize = size;
 
