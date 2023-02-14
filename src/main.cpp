@@ -156,12 +156,13 @@ bool SendData()
 
 void handleReceivedMessage()
 {
-  /*for (uint8_t i = 0; i < g_rcvdDataLen; i++)
+  /*  for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
-    char hexstr[3];
+    char hexstr[5];
     sprintf(hexstr, "0x%02X", g_rcvdLoRaData[i]);
     SERIAL_LOG("DATA %d: %s", i, hexstr)
-  }*/
+  }
+  */
   g_configParams.SetConfig(g_rcvdLoRaData, g_rcvdDataLen);
 
   // Some parameters require some re-initialization, which is what we do here for those cases.
