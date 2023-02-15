@@ -5,6 +5,12 @@ LIS3DH g_motionsensor(I2C_MODE, 0x18);
 
 bool MotionHelper::IsMotionEnabled()
 {
+    uint8_t data = 0;
+    g_motionsensor.readRegister(&data, LIS3DH_CTRL_REG1);
+    if (data == 0)
+    {
+        return false;
+    }
     return true;
 };
 
@@ -24,7 +30,6 @@ uint8_t MotionHelper::GetMotionInterupts()
     }
     return motionresult;
 }
-
 
 void MotionHelper::InitMotionSensor(uint8_t firstThreshold, uint8_t secondThreshold, uint8_t firstDuration, uint8_t secondDuration)
 {
