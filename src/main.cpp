@@ -7,6 +7,7 @@
 #include "serialhelper.h"
 #include "main.h"
 #include "config.h"
+#include "motion.h"
 
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
@@ -29,7 +30,7 @@ void setup()
   delay(1000); // For whatever reason, some pins/things are not available at startup right away. So we wait 3 seconds for stuff to warm up or something
   LedHelper::init();
   // Initialize serial for output.
-#if !MAX_SAVE
+#ifndef MAX_SAVE
   time_t timeout = millis();
   Serial.begin(115200);
   // check if serial has become available and if not, just wait for it.
@@ -47,6 +48,8 @@ void setup()
 #endif
   SERIAL_LOG("Setup start.");
   delay(1000);
+  // Create semaphore for task handling.
+  g_taskEvent = xSemaphoreCreateBinary();
 
   // Turn on power to sensors
   pinMode(WB_IO2, OUTPUT);
@@ -93,12 +96,19 @@ void setup()
   SERIAL_LOG("PowerSave on GNSS: %d", powerSave);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
 
+  MotionHelper::InitMotionSensor(
+      g_configParams.GetMotion1stThreshold(),
+      g_configParams.GetMotion2ndThreshold(),
+      g_configParams.GetMotion1stDuration(),
+      g_configParams.GetMotion2ndDuration());
+
+#ifndef LORAWAN_FAKE
   // Lora stuff
   LoraHelper::InitAndJoin(g_configParams.GetLoraDataRate(), g_configParams.GetLoraTXPower(), g_configParams.GetLoraADREnabled(),
                           g_configParams.GetLoraDevEUI(), g_configParams.GetLoraNodeAppEUI(), g_configParams.GetLoraAppKey());
+#endif
 
   // Go into sleep mode
-  g_taskEvent = xSemaphoreCreateBinary();
   xSemaphoreGive(g_taskEvent);
   g_EventType = EventType::Timer;
   g_taskWakeupTimer.begin(g_configParams.GetSleepTimeInSeconds() * 1000, periodicWakeup);
@@ -107,6 +117,7 @@ void setup()
 
 bool SendData()
 {
+#ifndef LORAWAN_FAKE
   if (!g_lorawan_joined)
   {
     SERIAL_LOG("Lora not joined yet while trying to send. Joining now.");
@@ -133,16 +144,25 @@ bool SendData()
     SERIAL_LOG("SKIPPING SEND - We are not joined to a network");
   }
   return false;
+#else
+  SERIAL_LOG("NOT SENDING lorawan packages as we have LORAWAN_FAKE set. Data that would be send:");
+  for (uint8_t x = 0; x < g_SendLoraData.buffsize; x++)
+  {
+    SERIAL_LOG("%d: 0x%02X", x, g_SendLoraData.buffer[x]);
+  }
+  return true;
+#endif
 }
 
 void handleReceivedMessage()
 {
-  /*for (uint8_t i = 0; i < g_rcvdDataLen; i++)
+  /*  for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
-    char hexstr[3];
-    sprintf(hexstr, "%02x", g_rcvdLoRaData[i]);
+    char hexstr[5];
+    sprintf(hexstr, "0x%02X", g_rcvdLoRaData[i]);
     SERIAL_LOG("DATA %d: %s", i, hexstr)
-  }*/
+  }
+  */
   g_configParams.SetConfig(g_rcvdLoRaData, g_rcvdDataLen);
 
   // Some parameters require some re-initialization, which is what we do here for those cases.
@@ -175,6 +195,18 @@ void handleReceivedMessage()
           SERIAL_LOG("Setting Lora TX Power to %d", g_configParams.GetLoraTXPower());
           LoraHelper::SetTXPower(g_configParams.GetLoraTXPower());
           break;
+        case ConfigType::MOTION_1stDuration:
+        case ConfigType::MOTION_2ndDuration:
+        case ConfigType::MOTION_1stThreshold:
+        case ConfigType::MOTION_2ndThreshold:
+          SERIAL_LOG("Setting motion sensor to 1/2nd threshold & 1/2nd duration: 0x%02X/0x%02X & 0x%02X/0x%02X",
+                     g_configParams.GetMotion1stThreshold(), g_configParams.GetMotion2ndThreshold(), g_configParams.GetMotion1stDuration(), g_configParams.GetMotion2ndDuration());
+          MotionHelper::InitMotionSensor(
+              g_configParams.GetMotion1stThreshold(),
+              g_configParams.GetMotion2ndThreshold(),
+              g_configParams.GetMotion1stDuration(),
+              g_configParams.GetMotion2ndDuration());
+          break;
         }
         i += conf->sizeOfOption; // jump to the next one
         break;
@@ -183,7 +215,7 @@ void handleReceivedMessage()
   }
 }
 
-void doGPSFix()
+void doPeriodicUpdate()
 {
   SERIAL_LOG("Doing GPSFix");
   digitalWrite(WB_IO2, HIGH);
@@ -231,6 +263,8 @@ void doGPSFix()
   SERIAL_LOG("GPS details: GPStime: %us; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d; Alt: %d\r\n", gpsTimeInSeconds, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
   uint16_t vbat_mv = BatteryHelper::readVBAT();
 
+  uint8_t motionresult = MotionHelper::GetMotionInterupts();
+
   // We are done with the sensors, so we can turn them off
   digitalWrite(WB_IO2, LOW);
 
@@ -239,7 +273,14 @@ void doGPSFix()
   int size = 0;
   g_SendLoraData.port = 2;
   g_SendLoraData.buffer[size++] = 0x03;
-  g_SendLoraData.buffer[size++] = 0x04;
+  if (MotionHelper::IsMotionEnabled())
+  {
+    g_SendLoraData.buffer[size++] = 0x06;
+  }
+  else
+  {
+    g_SendLoraData.buffer[size++] = 0x04;
+  }
 
   g_SendLoraData.buffer[size++] = vbat_mv >> 8;
   g_SendLoraData.buffer[size++] = vbat_mv;
@@ -266,6 +307,12 @@ void doGPSFix()
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL >> 8;
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL;
 
+  // Add motionresult
+  if (MotionHelper::IsMotionEnabled())
+  {
+    g_SendLoraData.buffer[size++] = motionresult;
+  }
+
   g_SendLoraData.buffsize = size;
 
   SendData();
@@ -279,7 +326,7 @@ void loop()
   {
     SERIAL_LOG("Running loop for EventType: %d", g_EventType);
 
-#if MAX_SAVE == false
+#ifndef MAX_SAVE
     digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
 #endif
     switch (g_EventType)
@@ -288,7 +335,7 @@ void loop()
       handleReceivedMessage();
       break;
     case EventType::Timer:
-      doGPSFix();
+      doPeriodicUpdate();
       break;
     case EventType::None:
     default:
@@ -296,7 +343,7 @@ void loop()
       break;
     };
 
-#if MAX_SAVE == false
+#ifndef MAX_SAVE
     digitalWrite(LED_GREEN, LOW);
 #endif
   }

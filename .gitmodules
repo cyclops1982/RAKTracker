@@ -1,3 +1,7 @@
 [submodule "lib/SparkFun_u-blox_GNSS_Arduino_Library"]
 	path = lib/SparkFun_u-blox_GNSS_Arduino_Library
 	url = https://github.com/sparkfun/SparkFun_u-blox_GNSS_Arduino_Library.git
+[submodule "lib/SparkFun_LIS3DH_Arduino_Library"]
+	path = lib/SparkFun_LIS3DH_Arduino_Library
+	url = git@github.com:cyclops1982/SparkFun_LIS3DH_Arduino_Library.git
+	branch = EasierCode

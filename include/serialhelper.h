@@ -1,16 +1,13 @@
 #ifndef SERIALHELPER_H
 #define SERIALHELPER_H
 
-#define MAX_SAVE true
+//#define MAX_SAVE
 
-#if MAX_SAVE == false
-#define SERIAL_LOG(fmt, args...)        \
-    {                                   \
-        if (MAX_SAVE == false)          \
-        {                               \
-            Serial.printf(fmt, ##args); \
-            Serial.println();           \
-        }                               \
+#ifndef MAX_SAVE
+#define SERIAL_LOG(fmt, args...)    \
+    {                               \
+        Serial.printf(fmt, ##args); \
+        Serial.println();           \
     }
 #else
 #define SERIAL_LOG(fmt, args...) ;
