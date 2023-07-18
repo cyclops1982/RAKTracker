@@ -92,7 +92,8 @@ void MotionHelper::InitMotionSensor(uint8_t firstThreshold, uint8_t secondThresh
         g_motionsensor.readRegister(&dummy, LIS3DH_REFERENCE); // reset to current position on initialize.
     }
 
-    SERIAL_LOG("Motion sensor initialized and threshold sets");
+
+    SERIAL_LOG("Motion sensor initialized and threshold - 1/2nd threshold & 1/2nd duration: 0x%02X/0x%02X & 0x%02X/0x%02X", firstThreshold, secondThreshold, firstDuration,secondDuration);
 }
 
 #endif

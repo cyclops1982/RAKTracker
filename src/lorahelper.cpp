@@ -44,12 +44,17 @@ void LoraHelper::lorawan_join_failed_handler(void)
 
 void LoraHelper::lorawan_rx_handler(lmh_app_data_t *app_data)
 {
-    SERIAL_LOG("LoRa Packet received on port %d, size:%d, rssi:%d, snr:%d, data:%s\n",
+    SERIAL_LOG("LoRa Packet received on port %d, size:%d, rssi:%d, snr:%d\n",
                app_data->port,
                app_data->buffsize,
                app_data->rssi,
-               app_data->snr,
-               app_data->buffer);
+               app_data->snr);
+    for (uint8_t i = 0; i < app_data->buffsize; i++)
+    {
+        char hexstr[5];
+        sprintf(hexstr, "0x%02X", app_data->buffer[i]);
+        SERIAL_LOG("Received data[%d]: %s", i, hexstr)
+    }
 
     switch (app_data->port)
     {
