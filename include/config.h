@@ -4,7 +4,6 @@
 #include <lorahelper.h>
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 
-
 // These config settings can be updated remotely.
 enum ConfigType
 {
@@ -37,17 +36,22 @@ struct ConfigurationParameters
     // The below values are therefor also the default values.
     // Some of the settings can be updated remotely.  See ConfigType above and/or g_configs below for a list
     // of those.
-    //Sheeptracker 1
-    uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
-    uint8_t _loraNodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
+    // Sheeptracker 1
+    //uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
+    //uint8_t _loraNodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
 
     // SheepTracker 2
-    //uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xF5, 0x2B};
-    //uint8_t _loraNodeAppKey[16] = {0x4b, 0xbb, 0x43, 0xef, 0x4b, 0xc6, 0x46, 0x22, 0x1b, 0x0d, 0xcb, 0xe0, 0x44, 0x54, 0xb6, 0x1a};
+    // uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xF5, 0x2B};
+    // uint8_t _loraNodeAppKey[16] = {0x4b, 0xbb, 0x43, 0xef, 0x4b, 0xc6, 0x46, 0x22, 0x1b, 0x0d, 0xcb, 0xe0, 0x44, 0x54, 0xb6, 0x1a};
+
+    // SheepTracker 3
+    uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x0C, 0xD7, 0x8A};
+    uint8_t _loraNodeAppKey[16] = {0xde, 0x84, 0xd1, 0xdc, 0x58, 0x7f, 0xf6, 0x8e, 0xe0, 0xd5, 0x31, 0x40, 0xff, 0x76, 0xb2, 0x89};
+
 
 
     // Config settings
-    uint16_t _sleeptime = 180;      // in seconds
+    uint16_t _sleeptime = 60;     // in seconds
     uint16_t _gnssFixTimeout = 90; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_PEDESTRIAN;
 
@@ -56,15 +60,12 @@ struct ConfigurationParameters
     uint8_t _motion1stDuration = 0x01;
     uint8_t _motion2ndDuration = 0x00;
 
-
     int8_t _loraDataRate = DR_2;
     int8_t _loraTXPower = TX_POWER_2;
     bool _loraADREnabled = false;
     bool _loraRequireConfirmation = false;
     uint8_t _loraNodeAppEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-    
-    
     static void SetUint32(const ConfigOption *option, uint8_t *arr);
     static void SetUint16(const ConfigOption *option, uint8_t *arr);
     static void SetUint8(const ConfigOption *option, uint8_t *arr);
@@ -87,7 +88,7 @@ public:
 
     uint8_t GetMotion1stDuration() { return _motion1stDuration; }
     uint8_t GetMotion2ndDuration() { return _motion2ndDuration; }
-    
+
     uint8_t GetMotion1stThreshold() { return _motion1stThreshold; }
     uint8_t GetMotion2ndThreshold() { return _motion2ndThreshold; }
     void SetConfig(uint8_t *array, uint8_t length);
@@ -133,7 +134,6 @@ void ConfigurationParameters::SetUint8(const ConfigOption *option, uint8_t *arr)
     uint8_t *ptr = (uint8_t *)option->value;
     *ptr = val;
     SERIAL_LOG("Setting '%s' change to %u", option->name, *ptr);
-
 }
 
 void ConfigurationParameters::SetInt8(const ConfigOption *option, uint8_t *arr)
@@ -143,7 +143,6 @@ void ConfigurationParameters::SetInt8(const ConfigOption *option, uint8_t *arr)
     int8_t *ptr = (int8_t *)option->value;
     *ptr = val;
     SERIAL_LOG("Setting '%s' change to %d", option->name, *ptr);
-
 }
 
 void ConfigurationParameters::SetBool(const ConfigOption *option, uint8_t *arr)
@@ -156,7 +155,6 @@ void ConfigurationParameters::SetBool(const ConfigOption *option, uint8_t *arr)
         *ptr = true;
     }
     SERIAL_LOG("Setting '%s' change to %d", option->name, *ptr);
-
 }
 
 void ConfigurationParameters::SetConfig(uint8_t *arr, uint8_t length)
