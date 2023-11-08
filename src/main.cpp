@@ -111,7 +111,7 @@ void setup()
   // Go into sleep mode
   xSemaphoreGive(g_taskEvent);
   g_EventType = EventType::Timer;
-  g_taskWakeupTimer.begin(g_configParams.GetSleepTimeInSeconds() * 1000, periodicWakeup);
+  g_taskWakeupTimer.begin(g_configParams.GetSleepTime0InSeconds() * 1000, periodicWakeup);
   g_taskWakeupTimer.start();
 }
 
@@ -175,10 +175,13 @@ void handleReceivedMessage()
       {
         switch (g_rcvdLoRaData[i])
         {
-        case ConfigType::SleepTime:
-          SERIAL_LOG("Resetting sleeptimer to %u", g_configParams.GetSleepTimeInSeconds());
-          g_taskWakeupTimer.stop();
-          g_taskWakeupTimer.begin(g_configParams.GetSleepTimeInSeconds() * 1000, periodicWakeup);
+        case ConfigType::SleepTime0:
+        case ConfigType::SleepTime1:
+        case ConfigType::SleepTime2:
+          SERIAL_LOG("Resetting sleeptimer to %u", g_configParams.GetSleepTime0InSeconds());
+          SERIAL_LOG("Timers are now %u / %u / %u", g_configParams.GetSleepTime0InSeconds(), g_configParams.GetSleepTime1InSeconds(), g_configParams.GetSleepTime2InSeconds());
+          // g_taskWakeupTimer.stop();
+          g_taskWakeupTimer.setPeriod(g_configParams.GetSleepTime0InSeconds() * 1000);
           g_taskWakeupTimer.start();
           break;
         case ConfigType::GPSDynamicModel:
@@ -262,8 +265,6 @@ void doPeriodicUpdate()
 
   SERIAL_LOG("GPS details: GPStime: %us; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d; Alt: %d\r\n", gpsTimeInSeconds, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
   uint16_t vbat_mv = BatteryHelper::readVBAT();
-
-  
 
   // We are done with the sensors, so we can turn them off
   digitalWrite(WB_IO2, LOW);
