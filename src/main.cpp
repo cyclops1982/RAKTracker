@@ -313,11 +313,24 @@ void doPeriodicUpdate()
   {
     uint8_t motionresult = MotionHelper::GetMotionInterupts();
     g_SendLoraData.buffer[size++] = motionresult;
+
     SERIAL_LOG("Motion details: 0x%02X", motionresult)
+    if ((motionresult & 0x10) == 0x10)
+    {
+      g_taskWakeupTimer.setPeriod(g_configParams.GetSleepTime2InSeconds() * 1000);
+    }
+    else if ((motionresult & 0x01) == 0x01)
+    {
+      g_taskWakeupTimer.setPeriod(g_configParams.GetSleepTime1InSeconds() * 1000);
+    }
+    else
+    {
+      g_taskWakeupTimer.setPeriod(g_configParams.GetSleepTime0InSeconds() * 1000);
+    }
+    g_taskWakeupTimer.start();
   }
 
   g_SendLoraData.buffsize = size;
-
   SendData();
 
   g_msgcount++;
