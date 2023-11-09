@@ -7,7 +7,9 @@
 // These config settings can be updated remotely.
 enum ConfigType
 {
-    SleepTime = 0x01,
+    SleepTime0 = 0x10,
+    SleepTime1 = 0x11,
+    SleepTime2 = 0x12,
     GPSDynamicModel = 0x20,
     GPSFixTimeout = 0x21,
     LORA_TXPower = 0x40,
@@ -51,14 +53,16 @@ struct ConfigurationParameters
 
 
     // Config settings
-    uint16_t _sleeptime = 60;     // in seconds
-    uint16_t _gnssFixTimeout = 90; // in seconds
+    uint16_t _sleeptime0 = 30;     // in seconds
+    uint16_t _sleeptime1 = 20;
+    uint16_t _sleeptime2 = 10;
+    uint16_t _gnssFixTimeout = 30; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_PEDESTRIAN;
 
     uint8_t _motion1stThreshold = 0x02;
-    uint8_t _motion2ndThreshold = 0x00;
-    uint8_t _motion1stDuration = 0x01;
-    uint8_t _motion2ndDuration = 0x00;
+    uint8_t _motion2ndThreshold = 0x10;
+    uint8_t _motion1stDuration = 0x10;
+    uint8_t _motion2ndDuration = 0x10;
 
     int8_t _loraDataRate = DR_2;
     int8_t _loraTXPower = TX_POWER_2;
@@ -73,7 +77,9 @@ struct ConfigurationParameters
     static void SetBool(const ConfigOption *option, uint8_t *arr);
 
 public:
-    uint32_t GetSleepTimeInSeconds() { return _sleeptime; }
+    uint32_t GetSleepTime0InSeconds() { return _sleeptime0; }
+    uint32_t GetSleepTime1InSeconds() { return _sleeptime1; }
+    uint32_t GetSleepTime2InSeconds() { return _sleeptime2; }
     uint16_t GetGNSSFixTimeoutInSeconds() { return _gnssFixTimeout; }
     // TODO: make this return `dynModel`. Requires a new Setmethod
     uint8_t GetGNSSDynamicModel() { return _gnssDynamicModel; }
@@ -96,7 +102,9 @@ public:
 } g_configParams;
 
 static const ConfigOption g_configs[] = {
-    {"Sleep time between GPS fixes (in seconds)", ConfigType::SleepTime, sizeof(g_configParams._sleeptime), &g_configParams._sleeptime, ConfigurationParameters::SetUint16},
+    {"Sleep time between GPS fixes (in seconds) - no threshold", ConfigType::SleepTime0, sizeof(g_configParams._sleeptime0), &g_configParams._sleeptime0, ConfigurationParameters::SetUint16},
+    {"Sleep time between GPS fixes (in seconds) - 1st threshold", ConfigType::SleepTime1, sizeof(g_configParams._sleeptime1), &g_configParams._sleeptime1, ConfigurationParameters::SetUint16},
+    {"Sleep time between GPS fixes (in seconds) - 2nd threshold", ConfigType::SleepTime2, sizeof(g_configParams._sleeptime2), &g_configParams._sleeptime2, ConfigurationParameters::SetUint16},
     {"GPS - Fix timeout (in seconds)", ConfigType::GPSFixTimeout, sizeof(g_configParams._gnssFixTimeout), &g_configParams._gnssFixTimeout, ConfigurationParameters::SetUint16},
     {"GPS - Dynamic Model", ConfigType::GPSDynamicModel, sizeof(g_configParams._gnssDynamicModel), &g_configParams._gnssDynamicModel, ConfigurationParameters::SetUint8},
     {"LoraWAN - TX Power", ConfigType::LORA_TXPower, sizeof(g_configParams._loraTXPower), &g_configParams._loraTXPower, ConfigurationParameters::SetInt8},
