@@ -4,6 +4,10 @@
 #include <lorahelper.h>
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 
+#include <Adafruit_LittleFS.h>
+#include <InternalFileSystem.h>
+using namespace Adafruit_LittleFS_Namespace;
+
 // These config settings can be updated remotely.
 enum ConfigType
 {
@@ -39,8 +43,8 @@ struct ConfigurationParameters
     // Some of the settings can be updated remotely.  See ConfigType above and/or g_configs below for a list
     // of those.
     // Sheeptracker 1
-    //uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
-    //uint8_t _loraNodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
+    // uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
+    // uint8_t _loraNodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
 
     // SheepTracker 2
     // uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xF5, 0x2B};
@@ -50,10 +54,8 @@ struct ConfigurationParameters
     uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x0C, 0xD7, 0x8A};
     uint8_t _loraNodeAppKey[16] = {0xde, 0x84, 0xd1, 0xdc, 0x58, 0x7f, 0xf6, 0x8e, 0xe0, 0xd5, 0x31, 0x40, 0xff, 0x76, 0xb2, 0x89};
 
-
-
     // Config settings
-    uint16_t _sleeptime0 = 30;     // in seconds
+    uint16_t _sleeptime0 = 30; // in seconds
     uint16_t _sleeptime1 = 20;
     uint16_t _sleeptime2 = 10;
     uint16_t _gnssFixTimeout = 30; // in seconds
@@ -75,6 +77,9 @@ struct ConfigurationParameters
     static void SetUint8(const ConfigOption *option, uint8_t *arr);
     static void SetInt8(const ConfigOption *option, uint8_t *arr);
     static void SetBool(const ConfigOption *option, uint8_t *arr);
+
+    static bool SaveConfig();
+    static bool InitConfig();
 
 public:
     uint32_t GetSleepTime0InSeconds() { return _sleeptime0; }
@@ -116,6 +121,8 @@ static const ConfigOption g_configs[] = {
     {"Motion - 1st interrupt threshold (0 == disabled)", ConfigType::MOTION_1stThreshold, sizeof(g_configParams._motion1stThreshold), &g_configParams._motion1stThreshold, ConfigurationParameters::SetUint8},
     {"Motion - 2nd interrupt threshold (0 == disabled)", ConfigType::MOTION_2ndThreshold, sizeof(g_configParams._motion2ndThreshold), &g_configParams._motion2ndThreshold, ConfigurationParameters::SetUint8},
 };
+
+
 
 void ConfigurationParameters::SetUint32(const ConfigOption *option, uint8_t *arr)
 {
@@ -180,6 +187,72 @@ void ConfigurationParameters::SetConfig(uint8_t *arr, uint8_t length)
             }
         }
     }
+    ConfigurationParameters::SaveConfig();
+}
+
+const char CONFIGNAME[] = "config.bin";
+
+bool ConfigurationParameters::SaveConfig()
+{
+    SERIAL_LOG("Saveconfig called. Storing stuff.");
+
+    File lora_file(InternalFS);
+    lora_file.open(CONFIGNAME, FILE_O_READ);
+    if (!lora_file)
+    {
+        SERIAL_LOG("failed to open file for reading");
+    }
+    lora_file.close();
+
+    if (InternalFS.remove(CONFIGNAME))
+    {
+        SERIAL_LOG("remove() returned TRUE");
+    }
+    else
+    {
+        SERIAL_LOG("remove() returned FALSE");
+    }
+
+    if (lora_file.open(CONFIGNAME, FILE_O_WRITE))
+    {
+        SERIAL_LOG("Open file_O_write returned TRUE");
+        lora_file.write((uint8_t *)&g_configParams, sizeof(ConfigurationParameters));
+        SERIAL_LOG("WRiting config");
+        lora_file.flush();
+        SERIAL_LOG("FLUSH");
+        lora_file.close();
+        SERIAL_LOG("Close");
+    }
+    else
+    {
+        SERIAL_LOG("Open file_O_write returned FALSE");
+        return false;
+    }
+    return true;
+}
+
+bool ConfigurationParameters::InitConfig()
+{
+    InternalFS.begin();
+    SERIAL_LOG("Initializing config from flash");
+    if (!InternalFS.exists(CONFIGNAME))
+    {
+        SERIAL_LOG("No Configuration exists. Saving current.")
+        SaveConfig();
+    }
+
+    File lora_file(InternalFS);
+
+    lora_file.open(CONFIGNAME, FILE_O_READ);
+    if (!lora_file)
+    {
+        SERIAL_LOG("Config initialization done, but still not readable. Flash broken?");
+        return false;
+    }
+    SERIAL_LOG("LOADING CONFIG");
+    lora_file.read((uint8_t *)&g_configParams, sizeof(ConfigurationParameters));
+    lora_file.close();
+    return true;
 }
 
 #endif

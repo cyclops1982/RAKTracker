@@ -9,6 +9,8 @@
 #include "config.h"
 #include "motion.h"
 
+
+
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
@@ -18,6 +20,7 @@ EventType g_EventType = EventType::None;
 uint8_t g_rcvdLoRaData[LORAWAN_BUFFER_SIZE];
 uint8_t g_rcvdDataLen = 0;
 bool g_lorawan_joined = false;
+
 
 void periodicWakeup(TimerHandle_t unused)
 {
@@ -47,6 +50,9 @@ void setup()
   }
 #endif
   SERIAL_LOG("Setup start.");
+  if (!g_configParams.InitConfig()) {
+    LedHelper::BlinkHalt();
+  }
   delay(1000);
   // Create semaphore for task handling.
   g_taskEvent = xSemaphoreCreateBinary();
