@@ -28,9 +28,11 @@ void periodicWakeup(TimerHandle_t unused)
   g_EventType = EventType::Timer;
   xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
 }
+
+
 void setup()
 {
-  delay(1000); // For whatever reason, some pins/things are not available at startup right away. So we wait 3 seconds for stuff to warm up or something
+  delay(1000); // For whatever reason, some pins/things are not available at startup right away. So we wait for a bit. This also helps when we want to connect to console.
   LedHelper::init();
   // Initialize serial for output.
 #ifndef MAX_SAVE
@@ -50,6 +52,7 @@ void setup()
   }
 #endif
   SERIAL_LOG("Setup start.");
+  
   if (!g_configParams.InitConfig()) {
     LedHelper::BlinkHalt();
   }
