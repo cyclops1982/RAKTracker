@@ -11,6 +11,8 @@ using namespace Adafruit_LittleFS_Namespace;
 // These config settings can be updated remotely.
 enum ConfigType
 {
+    ClearConfig = 0xFF,
+    Restart = 0x00,
     SleepTime0 = 0x10,
     SleepTime1 = 0x11,
     SleepTime2 = 0x12,
@@ -65,6 +67,7 @@ struct ConfigurationParameters
     uint8_t _motion2ndThreshold = 0x10;
     uint8_t _motion1stDuration = 0x10;
     uint8_t _motion2ndDuration = 0x10;
+    uint8_t _dummy = 0x00;
 
     int8_t _loraDataRate = DR_2;
     int8_t _loraTXPower = TX_POWER_2;
@@ -77,7 +80,13 @@ struct ConfigurationParameters
     static void SetUint8(const ConfigOption *option, uint8_t *arr);
     static void SetInt8(const ConfigOption *option, uint8_t *arr);
     static void SetBool(const ConfigOption *option, uint8_t *arr);
+    static void Restart(const ConfigOption *option, uint8_t *arr);
 };
+
+void ConfigurationParameters::Restart(const ConfigOption *option, uint8_t *arr)
+{
+    SERIAL_LOG("RESTARTTTT");
+}
 
 void ConfigurationParameters::SetUint32(const ConfigOption *option, uint8_t *arr)
 {
@@ -151,29 +160,40 @@ public:
 
     uint8_t GetMotion1stThreshold() { return configvalues._motion1stThreshold; }
     uint8_t GetMotion2ndThreshold() { return configvalues._motion2ndThreshold; }
+
+    ConfigOption *GetConfigs(size_t *size)
+    {
+        SERIAL_LOG("Getting config");
+        *size = sizeof(configs) / sizeof(ConfigOption);
+        return configs;
+    };
+
     void SetConfig(uint8_t *arr, uint8_t length)
     {
+        SERIAL_LOG("SETCONFIG: %d", length);
         if (length > 0)
         {
-            if (arr[0] == ConfigType::ClearConfig)
+            for (uint8_t i = 0; i < length; i++)
             {
-            }
-            else
-            {
-                for (uint8_t i = 0; i < length; i++)
+                for (size_t x = 0; x < sizeof(configs) / sizeof(ConfigOption); x++)
                 {
-                    for (size_t x = 0; x < sizeof(configs) / sizeof(ConfigOption); x++)
+                    const ConfigOption *conf = &configs[x];
+
+                    if (arr[i] == ConfigType::ClearConfig)
                     {
-                        const ConfigOption *conf = &configs[x];
-                        if (conf->configType == arr[i])
-                        {
-                            conf->setfunc(conf, (arr + i + 1));
-                            i += conf->sizeOfOption;
-                            break;
-                        }
+                        ResetConfig();
+                        i++;
+                    }
+                    if (conf->configType == arr[i])
+                    {
+                        conf->setfunc(conf, (arr + i + 1));
+                        i += conf->sizeOfOption;
+                        break;
                     }
                 }
             }
+
+            SaveConfig();
         }
     }
     bool SaveConfig()
@@ -215,6 +235,13 @@ public:
         return true;
     }
 
+    void ResetConfig()
+    {
+        SERIAL_LOG("RESETCONFIG");
+        ConfigurationParameters params;
+        configvalues = params;
+    }
+
     bool InitConfig()
     {
         InternalFS.begin();
@@ -243,7 +270,7 @@ private:
     ConfigurationParameters configvalues;
     inline static const char CONFIGNAME[] = "config.bin";
 
-    ConfigOption configs[13] = {
+    ConfigOption configs[14] = {
         {"Sleep time between GPS fixes (in seconds) - no threshold", ConfigType::SleepTime0, sizeof(ConfigurationParameters::_sleeptime0), &configvalues._sleeptime0, ConfigurationParameters::SetUint16},
         {"Sleep time between GPS fixes (in seconds) - 1st threshold", ConfigType::SleepTime1, sizeof(ConfigurationParameters::_sleeptime1), &configvalues._sleeptime1, ConfigurationParameters::SetUint16},
         {"Sleep time between GPS fixes (in seconds) - 2nd threshold", ConfigType::SleepTime2, sizeof(ConfigurationParameters::_sleeptime2), &configvalues._sleeptime2, ConfigurationParameters::SetUint16},
@@ -257,9 +284,8 @@ private:
         {"Motion - 2nd interrupt duration", ConfigType::MOTION_2ndDuration, sizeof(ConfigurationParameters::_motion2ndDuration), &configvalues._motion2ndDuration, ConfigurationParameters::SetUint8},
         {"Motion - 1st interrupt threshold (0 == disabled)", ConfigType::MOTION_1stThreshold, sizeof(ConfigurationParameters::_motion1stThreshold), &configvalues._motion1stThreshold, ConfigurationParameters::SetUint8},
         {"Motion - 2nd interrupt threshold (0 == disabled)", ConfigType::MOTION_2ndThreshold, sizeof(ConfigurationParameters::_motion2ndThreshold), &configvalues._motion2ndThreshold, ConfigurationParameters::SetUint8},
-    };
+        {"Restart Device", ConfigType::Restart, sizeof(ConfigurationParameters::_dummy), &configvalues._dummy, ConfigurationParameters::Restart}};
 };
-
 
 ConfigHelper g_configParams;
 

@@ -9,8 +9,6 @@
 #include "config.h"
 #include "motion.h"
 
-
-
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
@@ -21,14 +19,12 @@ uint8_t g_rcvdLoRaData[LORAWAN_BUFFER_SIZE];
 uint8_t g_rcvdDataLen = 0;
 bool g_lorawan_joined = false;
 
-
 void periodicWakeup(TimerHandle_t unused)
 {
   // Give the semaphore, so the loop task will wake up
   g_EventType = EventType::Timer;
   xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
 }
-
 
 void setup()
 {
@@ -52,8 +48,9 @@ void setup()
   }
 #endif
   SERIAL_LOG("Setup start.");
-  
-  if (!g_configParams.InitConfig()) {
+
+  if (!g_configParams.InitConfig())
+  {
     LedHelper::BlinkHalt();
   }
   delay(1000);
@@ -172,15 +169,19 @@ void handleReceivedMessage()
     SERIAL_LOG("DATA %d: %s", i, hexstr)
   }
   */
+  SERIAL_LOG("handleReceivedMessage");
   g_configParams.SetConfig(g_rcvdLoRaData, g_rcvdDataLen);
 
   // Some parameters require some re-initialization, which is what we do here for those cases.
   for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
-    for (size_t x = 0; x < sizeof(g_configs) / sizeof(ConfigOption); x++)
+    size_t arraySize = 0;
+    ConfigOption *configs = g_configParams.GetConfigs(&arraySize);
+    for (size_t x = 0; x < arraySize; x++)
     {
-      const ConfigOption *conf = &g_configs[x];
-      if (conf->configType == g_rcvdLoRaData[i])
+      ConfigOption conf = configs[x];
+      SERIAL_LOG("CONFIG (%d) %d: %s", arraySize, x, conf.name);
+      if (conf.configType == g_rcvdLoRaData[i])
       {
         switch (g_rcvdLoRaData[i])
         {
@@ -220,7 +221,7 @@ void handleReceivedMessage()
               g_configParams.GetMotion2ndDuration());
           break;
         }
-        i += conf->sizeOfOption; // jump to the next one
+        i += conf.sizeOfOption; // jump to the next one
         break;
       }
     }
