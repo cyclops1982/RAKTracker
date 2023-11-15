@@ -8,11 +8,12 @@
 #include <InternalFileSystem.h>
 using namespace Adafruit_LittleFS_Namespace;
 
+// We're using the filename for versioning!
+#define CONFIG_NAME "config_v1.bin"
+
 // These config settings can be updated remotely.
 enum ConfigType
 {
-    ClearConfig = 0xFF,
-    Restart = 0x00,
     SleepTime0 = 0x10,
     SleepTime1 = 0x11,
     SleepTime2 = 0x12,
@@ -25,7 +26,9 @@ enum ConfigType
     MOTION_1stThreshold = 0x51,
     MOTION_2ndThreshold = 0x52,
     MOTION_1stDuration = 0x53,
-    MOTION_2ndDuration = 0x54
+    MOTION_2ndDuration = 0x54,
+    Restart = 0xF0,
+    ClearConfig = 0xF1
 };
 
 struct ConfigOption
@@ -39,11 +42,6 @@ struct ConfigOption
 
 struct ConfigurationParameters
 {
-    // We use these config parameters throughout our code. They are hardcoded here because
-    // the rak thigns don't have permanent storage, and thus we need to code them into the software.
-    // The below values are therefor also the default values.
-    // Some of the settings can be updated remotely.  See ConfigType above and/or g_configs below for a list
-    // of those.
     // Sheeptracker 1
     // uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
     // uint8_t _loraNodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
@@ -67,7 +65,7 @@ struct ConfigurationParameters
     uint8_t _motion2ndThreshold = 0x10;
     uint8_t _motion1stDuration = 0x10;
     uint8_t _motion2ndDuration = 0x10;
-    uint8_t _dummy = 0x00;
+    void *_dummy;
 
     int8_t _loraDataRate = DR_2;
     int8_t _loraTXPower = TX_POWER_2;
@@ -81,11 +79,16 @@ struct ConfigurationParameters
     static void SetInt8(const ConfigOption *option, uint8_t *arr);
     static void SetBool(const ConfigOption *option, uint8_t *arr);
     static void Restart(const ConfigOption *option, uint8_t *arr);
+    static void DoNothing(const ConfigOption *option, uint8_t *arr);
 };
 
 void ConfigurationParameters::Restart(const ConfigOption *option, uint8_t *arr)
 {
-    SERIAL_LOG("RESTARTTTT");
+    NVIC_SystemReset();
+}
+void ConfigurationParameters::DoNothing(const ConfigOption *option, uint8_t *arr)
+{
+    SERIAL_LOG("Doing nothing");
 }
 
 void ConfigurationParameters::SetUint32(const ConfigOption *option, uint8_t *arr)
@@ -178,12 +181,13 @@ public:
                 for (size_t x = 0; x < sizeof(configs) / sizeof(ConfigOption); x++)
                 {
                     const ConfigOption *conf = &configs[x];
-
                     if (arr[i] == ConfigType::ClearConfig)
                     {
                         ResetConfig();
                         i++;
+                        break;
                     }
+
                     if (conf->configType == arr[i])
                     {
                         conf->setfunc(conf, (arr + i + 1));
@@ -198,17 +202,10 @@ public:
     }
     bool SaveConfig()
     {
-        SERIAL_LOG("Saveconfig called. Storing stuff.");
+        SERIAL_LOG("Saving configuration file");
 
         File lora_file(InternalFS);
-        lora_file.open(CONFIGNAME, FILE_O_READ);
-        if (!lora_file)
-        {
-            SERIAL_LOG("failed to open file for reading");
-        }
-        lora_file.close();
-
-        if (InternalFS.remove(CONFIGNAME))
+        if (InternalFS.remove(CONFIG_NAME))
         {
             SERIAL_LOG("remove() returned TRUE");
         }
@@ -217,19 +214,15 @@ public:
             SERIAL_LOG("remove() returned FALSE");
         }
 
-        if (lora_file.open(CONFIGNAME, FILE_O_WRITE))
+        if (lora_file.open(CONFIG_NAME, FILE_O_WRITE))
         {
-            SERIAL_LOG("Open file_O_write returned TRUE");
             lora_file.write((uint8_t *)&configvalues, sizeof(ConfigurationParameters));
-            SERIAL_LOG("WRiting config");
             lora_file.flush();
-            SERIAL_LOG("FLUSH");
             lora_file.close();
-            SERIAL_LOG("Close");
         }
         else
         {
-            SERIAL_LOG("Open file_O_write returned FALSE");
+            SERIAL_LOG("Failed to open config file for saving.");
             return false;
         }
         return true;
@@ -246,7 +239,7 @@ public:
     {
         InternalFS.begin();
         SERIAL_LOG("Initializing config from flash");
-        if (!InternalFS.exists(CONFIGNAME))
+        if (!InternalFS.exists(CONFIG_NAME))
         {
             SERIAL_LOG("No Configuration exists. Saving current.")
             SaveConfig();
@@ -254,7 +247,7 @@ public:
 
         File lora_file(InternalFS);
 
-        lora_file.open(CONFIGNAME, FILE_O_READ);
+        lora_file.open(CONFIG_NAME, FILE_O_READ);
         if (!lora_file)
         {
             SERIAL_LOG("Config initialization done, but still not readable. Flash broken?");
@@ -268,9 +261,8 @@ public:
 
 private:
     ConfigurationParameters configvalues;
-    inline static const char CONFIGNAME[] = "config.bin";
 
-    ConfigOption configs[14] = {
+    ConfigOption configs[15] = {
         {"Sleep time between GPS fixes (in seconds) - no threshold", ConfigType::SleepTime0, sizeof(ConfigurationParameters::_sleeptime0), &configvalues._sleeptime0, ConfigurationParameters::SetUint16},
         {"Sleep time between GPS fixes (in seconds) - 1st threshold", ConfigType::SleepTime1, sizeof(ConfigurationParameters::_sleeptime1), &configvalues._sleeptime1, ConfigurationParameters::SetUint16},
         {"Sleep time between GPS fixes (in seconds) - 2nd threshold", ConfigType::SleepTime2, sizeof(ConfigurationParameters::_sleeptime2), &configvalues._sleeptime2, ConfigurationParameters::SetUint16},
@@ -284,7 +276,9 @@ private:
         {"Motion - 2nd interrupt duration", ConfigType::MOTION_2ndDuration, sizeof(ConfigurationParameters::_motion2ndDuration), &configvalues._motion2ndDuration, ConfigurationParameters::SetUint8},
         {"Motion - 1st interrupt threshold (0 == disabled)", ConfigType::MOTION_1stThreshold, sizeof(ConfigurationParameters::_motion1stThreshold), &configvalues._motion1stThreshold, ConfigurationParameters::SetUint8},
         {"Motion - 2nd interrupt threshold (0 == disabled)", ConfigType::MOTION_2ndThreshold, sizeof(ConfigurationParameters::_motion2ndThreshold), &configvalues._motion2ndThreshold, ConfigurationParameters::SetUint8},
-        {"Restart Device", ConfigType::Restart, sizeof(ConfigurationParameters::_dummy), &configvalues._dummy, ConfigurationParameters::Restart}};
+        {"Restart Device", ConfigType::Restart, sizeof(ConfigurationParameters::_dummy), &configvalues._dummy, ConfigurationParameters::Restart},
+        {"Reset Config", ConfigType::ClearConfig, sizeof(ConfigurationParameters::_dummy), &configvalues._dummy, ConfigurationParameters::DoNothing},
+    };
 };
 
 ConfigHelper g_configParams;

@@ -169,7 +169,6 @@ void handleReceivedMessage()
     SERIAL_LOG("DATA %d: %s", i, hexstr)
   }
   */
-  SERIAL_LOG("handleReceivedMessage");
   g_configParams.SetConfig(g_rcvdLoRaData, g_rcvdDataLen);
 
   // Some parameters require some re-initialization, which is what we do here for those cases.
@@ -180,9 +179,9 @@ void handleReceivedMessage()
     for (size_t x = 0; x < arraySize; x++)
     {
       ConfigOption conf = configs[x];
-      SERIAL_LOG("CONFIG (%d) %d: %s", arraySize, x, conf.name);
       if (conf.configType == g_rcvdLoRaData[i])
       {
+        SERIAL_LOG("Updating setting %s", conf.name);
         switch (g_rcvdLoRaData[i])
         {
         case ConfigType::SleepTime0:
