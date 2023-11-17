@@ -8,7 +8,13 @@
 #include <InternalFileSystem.h>
 using namespace Adafruit_LittleFS_Namespace;
 
-// We're using the filename for versioning!
+// We've though quite a bit about versioning, as the config is just the ConfigurationParameter struct writen to a file.
+// Now, we could introduce versioning on the ConfigType and ConfigurationParameter so that we can write upgrade code. We could read the old file,
+// load it and copy the values to the new configuration option and save that (into a new filename).
+// This is all cool and would mean we can 'upgrade' without having to reset parameters.
+// In reality, we can only upgrade the firmware when the device is connected to USB, and thus the re-programming becomes a fairly easy.
+// In short: we will never really write 'upgrade code' to move from V1 to V2.  It is however practical to have the filename different, 
+// as we can then change that to ignore the 'old' settings.
 #define CONFIG_NAME "config_v1.bin"
 
 // These config settings can be updated remotely.
@@ -39,6 +45,7 @@ struct ConfigOption
     void *value;
     void (*setfunc)(const ConfigOption *opt, uint8_t *arr);
 };
+
 
 struct ConfigurationParameters
 {
@@ -166,14 +173,13 @@ public:
 
     ConfigOption *GetConfigs(size_t *size)
     {
-        SERIAL_LOG("Getting config");
         *size = sizeof(configs) / sizeof(ConfigOption);
         return configs;
     };
 
     void SetConfig(uint8_t *arr, uint8_t length)
     {
-        SERIAL_LOG("SETCONFIG: %d", length);
+        SERIAL_LOG("Setting configuration. Length is: %d", length);
         if (length > 0)
         {
             for (uint8_t i = 0; i < length; i++)
@@ -181,7 +187,7 @@ public:
                 for (size_t x = 0; x < sizeof(configs) / sizeof(ConfigOption); x++)
                 {
                     const ConfigOption *conf = &configs[x];
-                    if (arr[i] == ConfigType::ClearConfig)
+                    if (arr[i] == ConfigType::ClearConfig) // clearconfig is our only exception with regards to the setFunc() usage below.
                     {
                         ResetConfig();
                         i++;
@@ -225,20 +231,21 @@ public:
             SERIAL_LOG("Failed to open config file for saving.");
             return false;
         }
+        SERIAL_LOG("Save succesful");
         return true;
     }
 
     void ResetConfig()
     {
-        SERIAL_LOG("RESETCONFIG");
+        SERIAL_LOG("Resetting config to default");
         ConfigurationParameters params;
+        //TODO: if we wanted to 'save' values (like the DevEUI) then this would be the spot to copy the values.
         configvalues = params;
     }
 
     bool InitConfig()
     {
         InternalFS.begin();
-        SERIAL_LOG("Initializing config from flash");
         if (!InternalFS.exists(CONFIG_NAME))
         {
             SERIAL_LOG("No Configuration exists. Saving current.")
@@ -253,9 +260,9 @@ public:
             SERIAL_LOG("Config initialization done, but still not readable. Flash broken?");
             return false;
         }
-        SERIAL_LOG("LOADING CONFIG");
         lora_file.read((uint8_t *)&configvalues, sizeof(ConfigurationParameters));
         lora_file.close();
+        SERIAL_LOG("Loaded configuration from flash")
         return true;
     }
 

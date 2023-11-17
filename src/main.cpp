@@ -172,10 +172,10 @@ void handleReceivedMessage()
   g_configParams.SetConfig(g_rcvdLoRaData, g_rcvdDataLen);
 
   // Some parameters require some re-initialization, which is what we do here for those cases.
+  size_t arraySize = 0;
+  ConfigOption *configs = g_configParams.GetConfigs(&arraySize);
   for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
-    size_t arraySize = 0;
-    ConfigOption *configs = g_configParams.GetConfigs(&arraySize);
     for (size_t x = 0; x < arraySize; x++)
     {
       ConfigOption conf = configs[x];
