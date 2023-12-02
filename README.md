@@ -21,3 +21,8 @@ The goal of this tracker is to be able to:
 - Be able to run without solar charge for 3 days on a 2000mAh battery.
 - With a solar charge, be able to run indefinetly (until the battery runs out - let's say 3+ years)
 - Be able to configure the device via Lora
+
+
+## Dev Environment
+We're using VSCode and have added the .vscode folder as well to make it easy.
+Also note that the git repo has submodules, so you'll need to do a `git submodule init && git submodule update` after the clone.
