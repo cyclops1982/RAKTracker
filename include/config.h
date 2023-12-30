@@ -15,7 +15,7 @@ using namespace Adafruit_LittleFS_Namespace;
 // In reality, we can only upgrade the firmware when the device is connected to USB, and thus the re-programming becomes a fairly easy.
 // In short: we will never really write 'upgrade code' to move from V1 to V2.  It is however practical to have the filename different, 
 // as we can then change that to ignore the 'old' settings.
-#define CONFIG_NAME "config_v1.bin"
+#define CONFIG_NAME "config_v2.bin"
 
 // These config settings can be updated remotely.
 enum ConfigType
