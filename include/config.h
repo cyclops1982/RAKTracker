@@ -56,13 +56,13 @@ struct ConfigurationParameters
     uint16_t _sleeptime0 = 30;     // in seconds
     uint16_t _sleeptime1 = 20;
     uint16_t _sleeptime2 = 10;
-    uint16_t _gnssFixTimeout = 30; // in seconds
+    uint16_t _gnssFixTimeout = 120; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_PEDESTRIAN;
 
-    uint8_t _motion1stThreshold = 0x02;
-    uint8_t _motion2ndThreshold = 0x10;
-    uint8_t _motion1stDuration = 0x10;
-    uint8_t _motion2ndDuration = 0x10;
+    uint8_t _motion1stThreshold = 0x00;
+    uint8_t _motion2ndThreshold = 0x00;
+    uint8_t _motion1stDuration = 0x00;
+    uint8_t _motion2ndDuration = 0x00;
 
     int8_t _loraDataRate = DR_2;
     int8_t _loraTXPower = TX_POWER_2;
