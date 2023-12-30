@@ -62,16 +62,16 @@ struct ConfigurationParameters
     uint8_t _loraNodeAppKey[16] = {0xde, 0x84, 0xd1, 0xdc, 0x58, 0x7f, 0xf6, 0x8e, 0xe0, 0xd5, 0x31, 0x40, 0xff, 0x76, 0xb2, 0x89};
 
     // Config settings
-    uint16_t _sleeptime0 = 30; // in seconds
-    uint16_t _sleeptime1 = 20;
-    uint16_t _sleeptime2 = 10;
+    uint16_t _sleeptime0 = 300; // in seconds
+    uint16_t _sleeptime1 = 120;
+    uint16_t _sleeptime2 = 60;
     uint16_t _gnssFixTimeout = 30; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_PEDESTRIAN;
 
-    uint8_t _motion1stThreshold = 0x02;
-    uint8_t _motion2ndThreshold = 0x10;
-    uint8_t _motion1stDuration = 0x10;
-    uint8_t _motion2ndDuration = 0x10;
+    uint8_t _motion1stThreshold = 0x00;
+    uint8_t _motion2ndThreshold = 0x00;
+    uint8_t _motion1stDuration = 0x00;
+    uint8_t _motion2ndDuration = 0x00;
     void *_dummy;
 
     int8_t _loraDataRate = DR_2;
