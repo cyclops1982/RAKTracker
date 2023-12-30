@@ -25,9 +25,10 @@ void periodicWakeup(TimerHandle_t unused)
   g_EventType = EventType::Timer;
   xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
 }
+
 void setup()
 {
-  delay(1000); // For whatever reason, some pins/things are not available at startup right away. So we wait 3 seconds for stuff to warm up or something
+  delay(1000); // For whatever reason, some pins/things are not available at startup right away. So we wait for a bit. This also helps when we want to connect to console.
   LedHelper::init();
   // Initialize serial for output.
 #ifndef MAX_SAVE
@@ -47,6 +48,11 @@ void setup()
   }
 #endif
   SERIAL_LOG("Setup start.");
+
+  if (!g_configParams.InitConfig())
+  {
+    LedHelper::BlinkHalt();
+  }
   delay(1000);
   // Create semaphore for task handling.
   g_taskEvent = xSemaphoreCreateBinary();
@@ -166,13 +172,16 @@ void handleReceivedMessage()
   g_configParams.SetConfig(g_rcvdLoRaData, g_rcvdDataLen);
 
   // Some parameters require some re-initialization, which is what we do here for those cases.
+  size_t arraySize = 0;
+  ConfigOption *configs = g_configParams.GetConfigs(&arraySize);
   for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
-    for (size_t x = 0; x < sizeof(g_configs) / sizeof(ConfigOption); x++)
+    for (size_t x = 0; x < arraySize; x++)
     {
-      const ConfigOption *conf = &g_configs[x];
-      if (conf->configType == g_rcvdLoRaData[i])
+      ConfigOption conf = configs[x];
+      if (conf.configType == g_rcvdLoRaData[i])
       {
+        SERIAL_LOG("Updating setting %s", conf.name);
         switch (g_rcvdLoRaData[i])
         {
         case ConfigType::SleepTime0:
@@ -211,7 +220,7 @@ void handleReceivedMessage()
               g_configParams.GetMotion2ndDuration());
           break;
         }
-        i += conf->sizeOfOption; // jump to the next one
+        i += conf.sizeOfOption; // jump to the next one
         break;
       }
     }
