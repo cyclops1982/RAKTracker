@@ -84,7 +84,6 @@ void ConfigHelper::SetConfig(uint8_t *arr, uint8_t length)
     {
         for (uint8_t i = 0; i < length; i++)
         {
-            SERIAL_LOG("Next command is 0x%02X", arr[i]);
             for (size_t x = 0; x < sizeof(configs) / sizeof(ConfigOption); x++)
             {
                 const ConfigOption *conf = &configs[x];
@@ -100,9 +99,7 @@ void ConfigHelper::SetConfig(uint8_t *arr, uint8_t length)
                 }
                 if (conf->configType == arr[i])
                 {
-                    SERIAL_LOG("Calling setfunc for item");
                     conf->setfunc(conf, (arr + i + 1));
-                    SERIAL_LOG("out of setfunc for item");
                     i += conf->sizeOfOption;
                     break;
                 }
@@ -112,7 +109,6 @@ void ConfigHelper::SetConfig(uint8_t *arr, uint8_t length)
 }
 bool ConfigHelper::SaveConfig()
 {
-    
     SERIAL_LOG("Saving configuration file with name %s", CONFIG_NAME);
 
     File lora_file(InternalFS);
