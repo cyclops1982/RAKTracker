@@ -92,12 +92,10 @@ void LoraHelper::lorawan_rx_handler(lmh_app_data_t *app_data)
         SERIAL_LOG("Setting g_EventType to LoraDataReceived");
         g_EventType = EventType::LoraDataReceived;
 
-#if defined(RAK4630)
         if (g_taskEvent != NULL)
         {
             xSemaphoreGive(g_taskEvent);
         }
-#endif
 
         break;
     default:
