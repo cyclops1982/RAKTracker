@@ -129,13 +129,10 @@ void LoraHelper::SetTXPower(int8_t TXPower)
 
 void LoraHelper::InitAndJoin(int8_t datarate, int8_t TXPower, bool adrEnabled, uint8_t *nodeDeviceEUI, uint8_t *nodeAppEUI, uint8_t *nodeAppKey)
 {
-    SERIAL_LOG("Init and Join LoraWAN");
+    SERIAL_LOG("Init and Join LoraWAN with DevEUI 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", nodeDeviceEUI[0], nodeDeviceEUI[1], nodeDeviceEUI[2], nodeDeviceEUI[3], nodeDeviceEUI[4], nodeDeviceEUI[5], nodeDeviceEUI[6], nodeDeviceEUI[7]);
     g_lorawan_joined = false;
-#if defined(RAK4630)
     lora_rak4630_init();
-#elif defined(RAK11310)
-    lora_rak11300_init();
-#endif
+
     lmh_setDevEui(nodeDeviceEUI);
     lmh_setAppEui(nodeAppEUI);
     lmh_setAppKey(nodeAppKey);

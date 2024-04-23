@@ -9,6 +9,7 @@
 #include "config.h"
 #include "motion.h"
 
+ConfigHelper g_configParams;
 SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
