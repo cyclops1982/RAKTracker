@@ -81,7 +81,8 @@ void setup()
     delay(500);
     SERIAL_LOG("Attempting to re-connect to u-blox GNSS...");
   }
-  g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel()); // turns out a Bike is like a sheep.
+  g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel());
+  g_GNSS.setNAV5PositionAccuracy(g_configParams.GetNAV5PositionAccuracy());
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
   g_GNSS.setI2COutput(COM_TYPE_UBX);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
