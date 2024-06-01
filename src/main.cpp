@@ -197,7 +197,12 @@ void handleReceivedMessage()
           break;
         case ConfigType::GPSDynamicModel:
           SERIAL_LOG("Setting GNSS Dynamic Model to %u", g_configParams.GetGNSSDynamicModel());
-          g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel()); // turns out a Bike is like a sheep.
+          g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel());
+          g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
+          break;
+        case ConfigType::GPSPositionAccuracy:
+          SERIAL_LOG("Setting GNSS Position Accuracy to %u", g_configParams.GetGNSSPositionAccuracy());
+          g_GNSS.setNAV5PositionAccuracy(g_configParams.GetGNSSPositionAccuracy());
           g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
           break;
         case ConfigType::LORA_ADREnabled:

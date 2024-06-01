@@ -85,7 +85,7 @@ void ConfigHelper::SetConfig(uint8_t *arr, uint8_t length)
         for (uint8_t i = 0; i < length; i++)
         {
             for (size_t x = 0; x < sizeof(configs) / sizeof(ConfigOption); x++)
-            {
+            {                
                 const ConfigOption *conf = &configs[x];
                 if (arr[i] == ConfigType::ClearConfig)
                 {
@@ -99,6 +99,7 @@ void ConfigHelper::SetConfig(uint8_t *arr, uint8_t length)
                 }
                 if (conf->configType == arr[i])
                 {
+                    SERIAL_LOG("Calling setfunc for '%s'", conf->name);
                     conf->setfunc(conf, (arr + i + 1));
                     i += conf->sizeOfOption;
                     break;
