@@ -57,7 +57,7 @@ struct ConfigurationParameters
 
     uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xBB, 0xBB};
     uint8_t _loraNodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0xAA};
-
+                                     
     // Config settings
     uint16_t _sleeptime0 = 300; // in seconds
     uint16_t _sleeptime1 = 120;
@@ -99,7 +99,7 @@ public:
     uint16_t GetGNSSFixTimeoutInSeconds() { return configvalues._gnssFixTimeout; }
     // TODO: make this return `dynModel`. Requires a new Setmethod
     uint8_t GetGNSSDynamicModel() { return configvalues._gnssDynamicModel; }
-    uint16_t GetNAV5PositionAccuracy() { return configvalues._gnssPositionAccuracy; }
+    uint16_t GetGNSSPositionAccuracy() { return configvalues._gnssPositionAccuracy; }
 
     uint8_t GetLoraTXPower() { return configvalues._loraTXPower; }
     uint8_t GetLoraDataRate() { return configvalues._loraDataRate; }
