@@ -189,7 +189,6 @@ void handleReceivedMessage()
         case ConfigType::SleepTime0:
         case ConfigType::SleepTime1:
         case ConfigType::SleepTime2:
-          SERIAL_LOG("Resetting sleeptimer to %u", g_configParams.GetSleepTime0InSeconds());
           SERIAL_LOG("Timers are now %u / %u / %u", g_configParams.GetSleepTime0InSeconds(), g_configParams.GetSleepTime1InSeconds(), g_configParams.GetSleepTime2InSeconds());
           // g_taskWakeupTimer.stop();
           g_taskWakeupTimer.setPeriod(g_configParams.GetSleepTime0InSeconds() * 1000);
