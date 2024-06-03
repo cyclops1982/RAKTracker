@@ -81,7 +81,8 @@ void setup()
     delay(500);
     SERIAL_LOG("Attempting to re-connect to u-blox GNSS...");
   }
-  g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel()); // turns out a Bike is like a sheep.
+  g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel());
+  g_GNSS.setNAV5PositionAccuracy(g_configParams.GetGNSSPositionAccuracy());
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
   g_GNSS.setI2COutput(COM_TYPE_UBX);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
@@ -188,7 +189,6 @@ void handleReceivedMessage()
         case ConfigType::SleepTime0:
         case ConfigType::SleepTime1:
         case ConfigType::SleepTime2:
-          SERIAL_LOG("Resetting sleeptimer to %u", g_configParams.GetSleepTime0InSeconds());
           SERIAL_LOG("Timers are now %u / %u / %u", g_configParams.GetSleepTime0InSeconds(), g_configParams.GetSleepTime1InSeconds(), g_configParams.GetSleepTime2InSeconds());
           // g_taskWakeupTimer.stop();
           g_taskWakeupTimer.setPeriod(g_configParams.GetSleepTime0InSeconds() * 1000);
@@ -196,7 +196,12 @@ void handleReceivedMessage()
           break;
         case ConfigType::GPSDynamicModel:
           SERIAL_LOG("Setting GNSS Dynamic Model to %u", g_configParams.GetGNSSDynamicModel());
-          g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel()); // turns out a Bike is like a sheep.
+          g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel());
+          g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
+          break;
+        case ConfigType::GPSPositionAccuracy:
+          SERIAL_LOG("Setting GNSS Position Accuracy to %u", g_configParams.GetGNSSPositionAccuracy());
+          g_GNSS.setNAV5PositionAccuracy(g_configParams.GetGNSSPositionAccuracy());
           g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
           break;
         case ConfigType::LORA_ADREnabled:

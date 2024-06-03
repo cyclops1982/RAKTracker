@@ -2,6 +2,7 @@
 
 void ConfigurationParameters::Restart(const ConfigOption *option, uint8_t *arr)
 {
+    SERIAL_LOG("Restarting...");
     NVIC_SystemReset();
 }
 void ConfigurationParameters::DoNothing(const ConfigOption *option, uint8_t *arr)
@@ -85,7 +86,7 @@ void ConfigHelper::SetConfig(uint8_t *arr, uint8_t length)
         for (uint8_t i = 0; i < length; i++)
         {
             for (size_t x = 0; x < sizeof(configs) / sizeof(ConfigOption); x++)
-            {
+            {                
                 const ConfigOption *conf = &configs[x];
                 if (arr[i] == ConfigType::ClearConfig)
                 {
@@ -99,6 +100,7 @@ void ConfigHelper::SetConfig(uint8_t *arr, uint8_t length)
                 }
                 if (conf->configType == arr[i])
                 {
+                    SERIAL_LOG("Calling setfunc for '%s'", conf->name);
                     conf->setfunc(conf, (arr + i + 1));
                     i += conf->sizeOfOption;
                     break;
@@ -113,9 +115,12 @@ bool ConfigHelper::SaveConfig()
 
     File lora_file(InternalFS);
 
-    for (auto file : OLD_CONFIG_NAMES) {
-        if (InternalFS.exists(file)) {
-            if (InternalFS.remove(file)) {
+    for (auto file : OLD_CONFIG_NAMES)
+    {
+        if (InternalFS.exists(file))
+        {
+            if (InternalFS.remove(file))
+            {
                 SERIAL_LOG("Removed old config: %s", file);
             }
         }
@@ -175,8 +180,8 @@ bool ConfigHelper::InitConfig()
     // This commented bit of code can be used to override (/hardcode) some of the values. This makes sure that even
     // if you had this in the config, you'd overwrite it to the default value.
     //ConfigurationParameters defaults;
-    // memcpy(configvalues._loraDevEUI, defaults._loraDevEUI, 8);
-    // memcpy(configvalues._loraNodeAppKey, defaults._loraNodeAppKey, 16);
-    // SaveConfig();
+    //memcpy(configvalues._loraDevEUI, defaults._loraDevEUI, 8);
+    //memcpy(configvalues._loraNodeAppKey, defaults._loraNodeAppKey, 16);
+    //SaveConfig();
     return true;
 }

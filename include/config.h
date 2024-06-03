@@ -16,6 +16,7 @@ enum ConfigType
     SleepTime2 = 0x12,
     GPSDynamicModel = 0x20,
     GPSFixTimeout = 0x21,
+    GPSPositionAccuracy = 0x22,
     LORA_TXPower = 0x40,
     LORA_DataRate = 0x41,
     LORA_ADREnabled = 0x42,
@@ -56,13 +57,14 @@ struct ConfigurationParameters
 
     uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xBB, 0xBB};
     uint8_t _loraNodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0xAA};
-
+                                     
     // Config settings
     uint16_t _sleeptime0 = 300; // in seconds
     uint16_t _sleeptime1 = 120;
     uint16_t _sleeptime2 = 60;
     uint16_t _gnssFixTimeout = 120; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_PEDESTRIAN;
+    uint16_t _gnssPositionAccuracy = 50;
 
     uint8_t _motion1stThreshold = 0x00;
     uint8_t _motion2ndThreshold = 0x00;
@@ -97,6 +99,7 @@ public:
     uint16_t GetGNSSFixTimeoutInSeconds() { return configvalues._gnssFixTimeout; }
     // TODO: make this return `dynModel`. Requires a new Setmethod
     uint8_t GetGNSSDynamicModel() { return configvalues._gnssDynamicModel; }
+    uint16_t GetGNSSPositionAccuracy() { return configvalues._gnssPositionAccuracy; }
 
     uint8_t GetLoraTXPower() { return configvalues._loraTXPower; }
     uint8_t GetLoraDataRate() { return configvalues._loraDataRate; }
@@ -136,12 +139,13 @@ private:
 
     ConfigurationParameters configvalues;
 
-    ConfigOption configs[18] = {
+    ConfigOption configs[19] = {
         {"Sleep time between GPS fixes (in seconds) - no threshold", ConfigType::SleepTime0, sizeof(ConfigurationParameters::_sleeptime0), &configvalues._sleeptime0, ConfigurationParameters::SetUint16},
         {"Sleep time between GPS fixes (in seconds) - 1st threshold", ConfigType::SleepTime1, sizeof(ConfigurationParameters::_sleeptime1), &configvalues._sleeptime1, ConfigurationParameters::SetUint16},
         {"Sleep time between GPS fixes (in seconds) - 2nd threshold", ConfigType::SleepTime2, sizeof(ConfigurationParameters::_sleeptime2), &configvalues._sleeptime2, ConfigurationParameters::SetUint16},
         {"GPS - Fix timeout (in seconds)", ConfigType::GPSFixTimeout, sizeof(ConfigurationParameters::_gnssFixTimeout), &configvalues._gnssFixTimeout, ConfigurationParameters::SetUint16},
         {"GPS - Dynamic Model", ConfigType::GPSDynamicModel, sizeof(ConfigurationParameters::_gnssDynamicModel), &configvalues._gnssDynamicModel, ConfigurationParameters::SetUint8},
+        {"GPS - Position Accuracy", ConfigType::GPSPositionAccuracy, sizeof(ConfigurationParameters::_gnssPositionAccuracy), &configvalues._gnssPositionAccuracy, ConfigurationParameters::SetUint16},        
         {"LoraWAN - TX Power", ConfigType::LORA_TXPower, sizeof(ConfigurationParameters::_loraTXPower), &configvalues._loraTXPower, ConfigurationParameters::SetInt8},
         {"LoraWAN - DataRate", ConfigType::LORA_DataRate, sizeof(ConfigurationParameters::_loraDataRate), &configvalues._loraDataRate, ConfigurationParameters::SetInt8},
         {"LoraWAN - ADR Enabled", ConfigType::LORA_ADREnabled, sizeof(ConfigurationParameters::_loraADREnabled), &configvalues._loraADREnabled, ConfigurationParameters::SetBool},
