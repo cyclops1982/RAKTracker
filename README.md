@@ -26,3 +26,14 @@ The goal of this tracker is to be able to:
 ## Dev Environment
 We're using VSCode and have added the .vscode folder as well to make it easy.
 Also note that the git repo has submodules, so you'll need to do a `git submodule init && git submodule update` after the clone.
+
+
+## Error notes
+
+The thing will blink a number of times when it fails. The blinks indicate what's wrong:
+```
+2 = Initialization of config failed
+3 = GPS Initialization failed
+4 = powersave failed
+
+```
