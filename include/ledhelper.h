@@ -7,7 +7,7 @@ class LedHelper
 {
 public:
     static void init();
-    static void BlinkHalt();
+    static void BlinkHalt(uint blickcount);
     static void BlinkDelay(int ledpin, int delay);
     static bool isInitialized;
 };

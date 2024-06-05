@@ -52,7 +52,7 @@ void setup()
 
   if (!g_configParams.InitConfig())
   {
-    LedHelper::BlinkHalt();
+    LedHelper::BlinkHalt(2);
   }
   delay(1000);
   // Create semaphore for task handling.
@@ -70,7 +70,7 @@ void setup()
   if (g_GNSS.begin() == false)
   {
     SERIAL_LOG("Ublox GPS not detected at default I2C address. Please check wiring. Halting.");
-    LedHelper::BlinkHalt();
+    LedHelper::BlinkHalt(3);
   }
 
   SERIAL_LOG("Found GNSS with Protocol version: %d.%d", g_GNSS.getProtocolVersionHigh(), g_GNSS.getProtocolVersionLow());
@@ -99,7 +99,7 @@ void setup()
   if (powerSave == 255)
   {
     SERIAL_LOG("Failed to retrieve powersave mode.");
-    LedHelper::BlinkHalt();
+    LedHelper::BlinkHalt(4);
   }
   SERIAL_LOG("PowerSave on GNSS: %d", powerSave);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
