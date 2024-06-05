@@ -30,33 +30,18 @@ void LedHelper::BlinkDelay(int ledpin, int waittime)
     delay(waittime);
 }
 
-void LedHelper::BlinkHalt()
+void LedHelper::BlinkHalt(uint blickcount)
 {
     init();
     while (1)
     {
-        // SOS
-        for (short i = 0; i < 3; i++)
+        for (short i = 0; i < blickcount; i++)
         {
             digitalWrite(LED_BLUE, HIGH);
             delay(100);
             digitalWrite(LED_BLUE, LOW);
             delay(100);
         }
-        for (short i = 0; i < 3; i++)
-        {
-            digitalWrite(LED_BLUE, HIGH);
-            delay(500);
-            digitalWrite(LED_BLUE, LOW);
-            delay(500);
-        }
-        for (short i = 0; i < 3; i++)
-        {
-            digitalWrite(LED_BLUE, HIGH);
-            delay(100);
-            digitalWrite(LED_BLUE, LOW);
-            delay(100);
-        }
-        delay(500);
+        delay(1000);
     }
 }
