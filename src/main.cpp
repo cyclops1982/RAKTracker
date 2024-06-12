@@ -263,14 +263,14 @@ void doPeriodicUpdate()
   {
     gpsFixType = g_GNSS.getFixType(); // Get the fix type
 
-    if (gpsFixType == 3 && g_GNSS.getGnssFixOk())
+    if (g_GNSS.getGnssFixOk())
     {
-      SERIAL_LOG("FixType 3 and GnnsFixOK");
+      SERIAL_LOG("GnnsFixOK");
       break;
     }
     else
     {
-      delay(500);
+      delay(1000);
     }
 
     if ((millis() - gpsStart) > gnssTimeout)
