@@ -6,7 +6,7 @@
 #include "serialhelper.h"
 #include "ledhelper.h"
 
-#define MOTION_DISABLED
+//#define MOTION_DISABLED
 
 #ifndef MOTION_DISABLED
 class MotionHelper {

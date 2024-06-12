@@ -35,5 +35,6 @@ The thing will blink a number of times when it fails. The blinks indicate what's
 2 = Initialization of config failed
 3 = GPS Initialization failed
 4 = powersave failed
+5 = Motion sensor failure
 
 ```

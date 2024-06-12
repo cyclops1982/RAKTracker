@@ -39,7 +39,7 @@ void MotionHelper::InitMotionSensor(uint8_t firstThreshold, uint8_t secondThresh
     if (sensorBeginResult != 0)
     {
         SERIAL_LOG("Failed to start motion sensor: %d", sensorBeginResult);
-        LedHelper::BlinkHalt();
+        LedHelper::BlinkHalt(5);
     }
 
     g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, 0); // power it down.
