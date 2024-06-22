@@ -38,9 +38,9 @@ void LedHelper::BlinkHalt(uint blickcount)
         for (short i = 0; i < blickcount; i++)
         {
             digitalWrite(LED_BLUE, HIGH);
-            delay(100);
+            delay(200);
             digitalWrite(LED_BLUE, LOW);
-            delay(100);
+            delay(200);
         }
         delay(1000);
     }
