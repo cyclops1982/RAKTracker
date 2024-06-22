@@ -82,16 +82,6 @@ void setup()
     SERIAL_LOG("Attempting to re-connect to u-blox GNSS...");
   }
   g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel());
-  uint16_t posAcc = g_configParams.GetGNSSPositionAccuracy();
-  if (posAcc != 100)
-  {
-    SERIAL_LOG("Seting GNSS Position Accuracy to %u", posAcc)
-    g_GNSS.setNAV5PositionAccuracy(posAcc);
-  }
-  else
-  {
-    SERIAL_LOG("NOT Seting GNSS Position Accuracy")
-  }
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
   g_GNSS.setI2COutput(COM_TYPE_UBX);
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
@@ -208,11 +198,6 @@ void handleReceivedMessage()
           g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel());
           g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
           break;
-        case ConfigType::GPSPositionAccuracy:
-          SERIAL_LOG("Setting GNSS Position Accuracy to %u", g_configParams.GetGNSSPositionAccuracy());
-          g_GNSS.setNAV5PositionAccuracy(g_configParams.GetGNSSPositionAccuracy());
-          g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
-          break;
         case ConfigType::LORA_ADREnabled:
         case ConfigType::LORA_DataRate:
           SERIAL_LOG("Setting Lora DataRate to %u and ARD to %d", g_configParams.GetLoraDataRate(), g_configParams.GetLoraADREnabled());
@@ -257,15 +242,15 @@ void doPeriodicUpdate()
     delay(100);
   }
   byte gpsFixType = 0;
-
+  uint16_t dopLimit = g_configParams.GetGNSSHDOPLimit();
   uint32_t gnssTimeout = (uint32_t)g_configParams.GetGNSSFixTimeoutInSeconds() * 1000;
   while (1)
   {
-    gpsFixType = g_GNSS.getFixType(); // Get the fix type
-
-    if (g_GNSS.getGnssFixOk())
+    uint16_t hdop = g_GNSS.getHorizontalDOP();
+    bool fixOK = g_GNSS.getGnssFixOk();
+    if (fixOK && hdop <= dopLimit)
     {
-      SERIAL_LOG("GnnsFixOK");
+      SERIAL_LOG("GnnsFixOK && dop <= doplimit");
       break;
     }
     else
@@ -278,8 +263,6 @@ void doPeriodicUpdate()
       SERIAL_LOG("GNSS fix timeout:  %u > %u", (millis() - gpsStart), gnssTimeout);
       break;
     }
-
-    SERIAL_LOG("FixType: %d", gpsFixType);
   }
   uint16_t gpsTimeInSeconds = (uint16_t)((millis() - gpsStart) / 1000);
   int32_t gpsLat = g_GNSS.getLatitude();

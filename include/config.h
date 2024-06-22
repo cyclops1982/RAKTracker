@@ -16,7 +16,7 @@ enum ConfigType
     SleepTime2 = 0x12,
     GPSDynamicModel = 0x20,
     GPSFixTimeout = 0x21,
-    GPSPositionAccuracy = 0x22,
+    GPSHDOPLimit = 0x22,
     LORA_TXPower = 0x40,
     LORA_DataRate = 0x41,
     LORA_ADREnabled = 0x42,
@@ -65,7 +65,7 @@ struct ConfigurationParameters
     uint16_t _sleeptime2 = 30;
     uint16_t _gnssFixTimeout = 120; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_PEDESTRIAN;
-    uint16_t _gnssPositionAccuracy = 50;
+    uint16_t _gnssHDOPLimit = 600;
 
     uint8_t _motion1stThreshold = 0x00;
     uint8_t _motion2ndThreshold = 0x00;
@@ -100,7 +100,7 @@ public:
     uint16_t GetGNSSFixTimeoutInSeconds() { return configvalues._gnssFixTimeout; }
     // TODO: make this return `dynModel`. Requires a new Setmethod
     uint8_t GetGNSSDynamicModel() { return configvalues._gnssDynamicModel; }
-    uint16_t GetGNSSPositionAccuracy() { return configvalues._gnssPositionAccuracy; }
+    uint16_t GetGNSSHDOPLimit() { return configvalues._gnssHDOPLimit; }
 
     uint8_t GetLoraTXPower() { return configvalues._loraTXPower; }
     uint8_t GetLoraDataRate() { return configvalues._loraDataRate; }
@@ -146,7 +146,7 @@ private:
         {"Sleep time between GPS fixes (in seconds) - 2nd threshold", ConfigType::SleepTime2, sizeof(ConfigurationParameters::_sleeptime2), &configvalues._sleeptime2, ConfigurationParameters::SetUint16},
         {"GPS - Fix timeout (in seconds)", ConfigType::GPSFixTimeout, sizeof(ConfigurationParameters::_gnssFixTimeout), &configvalues._gnssFixTimeout, ConfigurationParameters::SetUint16},
         {"GPS - Dynamic Model", ConfigType::GPSDynamicModel, sizeof(ConfigurationParameters::_gnssDynamicModel), &configvalues._gnssDynamicModel, ConfigurationParameters::SetUint8},
-        {"GPS - Position Accuracy", ConfigType::GPSPositionAccuracy, sizeof(ConfigurationParameters::_gnssPositionAccuracy), &configvalues._gnssPositionAccuracy, ConfigurationParameters::SetUint16},        
+        {"GPS - Position Accuracy", ConfigType::GPSHDOPLimit, sizeof(ConfigurationParameters::_gnssHDOPLimit), &configvalues._gnssHDOPLimit, ConfigurationParameters::SetUint16},        
         {"LoraWAN - TX Power", ConfigType::LORA_TXPower, sizeof(ConfigurationParameters::_loraTXPower), &configvalues._loraTXPower, ConfigurationParameters::SetInt8},
         {"LoraWAN - DataRate", ConfigType::LORA_DataRate, sizeof(ConfigurationParameters::_loraDataRate), &configvalues._loraDataRate, ConfigurationParameters::SetInt8},
         {"LoraWAN - ADR Enabled", ConfigType::LORA_ADREnabled, sizeof(ConfigurationParameters::_loraADREnabled), &configvalues._loraADREnabled, ConfigurationParameters::SetBool},
