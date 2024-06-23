@@ -142,6 +142,7 @@ bool SendData()
     }
     else
     {
+      LedHelper::BlinkStatus(3);
       SERIAL_LOG("LorRaSend failed: %d\n", loraSendState);
       return false;
     }
@@ -260,6 +261,7 @@ void doPeriodicUpdate()
 
     if ((millis() - gpsStart) > gnssTimeout)
     {
+      LedHelper::BlinkStatus(4);
       SERIAL_LOG("GNSS fix timeout:  %u > %u", (millis() - gpsStart), gnssTimeout);
       break;
     }

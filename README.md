@@ -38,3 +38,14 @@ The thing will blink a number of times when it fails. The blinks indicate what's
 5 = Motion sensor failure
 
 ```
+
+## BlinkStatus
+
+In some cases, we blink a status code. These are the various status blinks:
+
+```
+2 = Lora Join failed
+3 = Lora send failed
+4 = GPS fix timeout
+
+```

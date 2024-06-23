@@ -152,6 +152,7 @@ void LoraHelper::InitAndJoin(int8_t datarate, int8_t TXPower, bool adrEnabled, u
         LedHelper::BlinkDelay(LED_BLUE, 250);
         if (lmh_join_status_get() == LMH_FAILED)
         {
+            LedHelper::BlinkStatus(2);
             SERIAL_LOG("lmh_join_status_get returned LMH_FAILED. Jumping out of 'wait' loop.");
             return;
         }

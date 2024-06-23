@@ -9,6 +9,7 @@ public:
     static void init();
     static void BlinkHalt(uint blickcount);
     static void BlinkDelay(int ledpin, int delay);
+    static void BlinkStatus(uint blickcount);
     static bool isInitialized;
 };
 #endif
