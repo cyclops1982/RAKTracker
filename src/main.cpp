@@ -249,6 +249,7 @@ void doPeriodicUpdate()
   {
     uint16_t hdop = g_GNSS.getHorizontalDOP();
     bool fixOK = g_GNSS.getGnssFixOk();
+    gpsFixType = g_GNSS.getFixType();
     if (fixOK && hdop <= dopLimit)
     {
       SERIAL_LOG("GnnsFixOK && dop <= doplimit");
