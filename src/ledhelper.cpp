@@ -32,6 +32,7 @@ void LedHelper::BlinkDelay(int ledpin, int waittime)
 
 void LedHelper::BlinkStatus(uint blickcount)
 {
+    init();
     digitalWrite(LED_BLUE, LOW);  // make sure it's low.
     digitalWrite(LED_BLUE, HIGH); // go high for short amount of time (fixed)
     delay(200);
@@ -40,9 +41,9 @@ void LedHelper::BlinkStatus(uint blickcount)
     for (uint i = 0; i < blickcount; i++)
     {
         digitalWrite(LED_BLUE, HIGH); // High for indicated amount of time.
-        delay(250);
+        delay(500);
         digitalWrite(LED_BLUE, LOW);
-        delay(750);
+        delay(1000);
     }
 };
 

@@ -89,9 +89,22 @@ void setup()
   // We should also disable SBAS and IMES via UBX-CFG-GNSS
   // We should also turn of time-pulses via UBX-CFG-TP5
   // We should be doing Power Save Mode ON/OFF (PSMOO) Operation
-  if (g_GNSS.powerSaveMode(false) == false)
+
+  // if (!g_GNSS.setPowerManagement(SFE_UBLOX_PMS_MODE_AGGRESSIVE_1HZ))
+  // {
+  //   SERIAL_LOG("Failed to setPowerManagement");
+  //   LedHelper::BlinkHalt(4);
+  // }
+
+  sfe_ublox_pms_mode_e powerSaveMode = static_cast<sfe_ublox_pms_mode_e>(g_configParams.GetGNSSPowerSaveMode());
+  SERIAL_LOG("PowerSaveMode is %d", powerSaveMode);
+  if (powerSaveMode != SFE_UBLOX_PMS_MODE_INVALID)
   {
-    SERIAL_LOG("PowerSave not supported, or couldn't be set.");
+    if (!g_GNSS.setPowerManagement(powerSaveMode))
+    {
+      SERIAL_LOG("Failed to set PowerManagement");
+      LedHelper::BlinkHalt(4);
+    }
   }
 
   uint8_t powerSave = g_GNSS.getPowerSaveMode();
@@ -100,7 +113,8 @@ void setup()
     SERIAL_LOG("Failed to retrieve powersave mode.");
     LedHelper::BlinkHalt(4);
   }
-  SERIAL_LOG("PowerSave on GNSS: %d", powerSave);
+  SERIAL_LOG("PowerSave move is: %d", powerSave)
+  SERIAL_LOG("GPS is setup, HDOP = %d", g_configParams.GetGNSSHDOPLimit());
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
 
   MotionHelper::InitMotionSensor(
@@ -231,8 +245,19 @@ void handleReceivedMessage()
 void doPeriodicUpdate()
 {
   SERIAL_LOG("Doing GPSFix");
-  digitalWrite(WB_IO2, HIGH);
-  delay(500);
+  sfe_ublox_pms_mode_e powerSaveMode = static_cast<sfe_ublox_pms_mode_e>(g_configParams.GetGNSSPowerSaveMode());
+
+  if (powerSaveMode != SFE_UBLOX_PMS_MODE_INVALID)
+  {
+    SERIAL_LOG("Setting IO2 HIGH");
+    digitalWrite(WB_IO2, HIGH);
+    delay(500);
+  }
+
+  uint16_t dopLimit = g_configParams.GetGNSSHDOPLimit();
+  uint32_t gnssTimeout = (uint32_t)g_configParams.GetGNSSFixTimeoutInSeconds() * 1000;
+  byte gpsFixType = 0;
+  uint16_t hdop = 0;
 
   uint32_t gpsStart = millis();
   bool gpsPVTStatus = g_GNSS.getPVT();
@@ -240,23 +265,20 @@ void doPeriodicUpdate()
   {
     gpsPVTStatus = g_GNSS.getPVT();
     SERIAL_LOG("PVT result: %d", gpsPVTStatus);
-    delay(100);
+    delay(1000);
   }
-  byte gpsFixType = 0;
-  uint16_t dopLimit = g_configParams.GetGNSSHDOPLimit();
-  uint32_t gnssTimeout = (uint32_t)g_configParams.GetGNSSFixTimeoutInSeconds() * 1000;
   while (1)
   {
-    uint16_t hdop = g_GNSS.getHorizontalDOP();
-    bool fixOK = g_GNSS.getGnssFixOk();
+    hdop = g_GNSS.getHorizontalDOP();
     gpsFixType = g_GNSS.getFixType();
-    if (fixOK && hdop <= dopLimit)
+    if (g_GNSS.getGnssFixOk() && hdop <= dopLimit)
     {
       SERIAL_LOG("GnnsFixOK && dop <= doplimit");
       break;
     }
     else
     {
+      SERIAL_LOG("FIXTYPE: %d; HDOP: %d", gpsFixType, hdop);
       delay(1000);
     }
 
@@ -273,11 +295,15 @@ void doPeriodicUpdate()
   uint8_t gpsSats = g_GNSS.getSIV();
   int16_t gpsAltitudeMSL = (g_GNSS.getAltitudeMSL() / 1000);
 
-  SERIAL_LOG("GPS details: GPStime: %us; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d; Alt: %d\r\n", gpsTimeInSeconds, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL);
+  SERIAL_LOG("GPS details: GPStime: %us; SATS: %d; FIXTYPE: %d; LAT: %d; LONG: %d; Alt: %d; HDOP: %d\r\n", gpsTimeInSeconds, gpsSats, gpsFixType, gpsLat, gpsLong, gpsAltitudeMSL, hdop);
   uint16_t vbat_mv = BatteryHelper::readVBAT();
 
   // We are done with the sensors, so we can turn them off
-  digitalWrite(WB_IO2, LOW);
+  if (powerSaveMode != SFE_UBLOX_PMS_MODE_INVALID)
+  {
+    SERIAL_LOG("Setting IO2 LOW");
+    digitalWrite(WB_IO2, LOW);
+  }
 
   // Create the lora message
   memset(g_SendLoraData.buffer, 0, LORAWAN_BUFFER_SIZE);

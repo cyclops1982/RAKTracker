@@ -17,6 +17,7 @@ enum ConfigType
     GPSDynamicModel = 0x20,
     GPSFixTimeout = 0x21,
     GPSHDOPLimit = 0x22,
+    GPSPowerSaveMode = 0x23,
     LORA_TXPower = 0x40,
     LORA_DataRate = 0x41,
     LORA_ADREnabled = 0x42,
@@ -65,6 +66,7 @@ struct ConfigurationParameters
     uint16_t _sleeptime2 = 30;
     uint16_t _gnssFixTimeout = 120; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_PEDESTRIAN;
+    uint8_t _gnssPowerSaveMode = SFE_UBLOX_PMS_MODE_INVALID;
     uint16_t _gnssHDOPLimit = 600;
 
     uint8_t _motion1stThreshold = 0x00;
@@ -98,6 +100,7 @@ public:
     uint32_t GetSleepTime1InSeconds() { return configvalues._sleeptime1; }
     uint32_t GetSleepTime2InSeconds() { return configvalues._sleeptime2; }
     uint16_t GetGNSSFixTimeoutInSeconds() { return configvalues._gnssFixTimeout; }
+    uint8_t GetGNSSPowerSaveMode() { return configvalues._gnssPowerSaveMode; }
     // TODO: make this return `dynModel`. Requires a new Setmethod
     uint8_t GetGNSSDynamicModel() { return configvalues._gnssDynamicModel; }
     uint16_t GetGNSSHDOPLimit() { return configvalues._gnssHDOPLimit; }
@@ -130,23 +133,25 @@ private:
         In short: we will never really write 'upgrade code' to move from V1 to V2.  It is however practical to have the filename different,
         as we can then change that to ignore the 'old' settings.
         */
-    const char *CONFIG_NAME = "config_v4.bin";
-    const char *OLD_CONFIG_NAMES[3] = {
+    const char *CONFIG_NAME = "config_v5.bin";
+    const char *OLD_CONFIG_NAMES[4] = {
         "config_v1.bin",
         "config_v2.bin",
-        "config_v3.bin"};
+        "config_v3.bin",
+        "config_v4.bin"};
     bool SaveConfig();
     void ResetConfig();
 
     ConfigurationParameters configvalues;
 
-    ConfigOption configs[19] = {
+    ConfigOption configs[20] = {
         {"Sleep time between GPS fixes (in seconds) - no threshold", ConfigType::SleepTime0, sizeof(ConfigurationParameters::_sleeptime0), &configvalues._sleeptime0, ConfigurationParameters::SetUint16},
         {"Sleep time between GPS fixes (in seconds) - 1st threshold", ConfigType::SleepTime1, sizeof(ConfigurationParameters::_sleeptime1), &configvalues._sleeptime1, ConfigurationParameters::SetUint16},
         {"Sleep time between GPS fixes (in seconds) - 2nd threshold", ConfigType::SleepTime2, sizeof(ConfigurationParameters::_sleeptime2), &configvalues._sleeptime2, ConfigurationParameters::SetUint16},
         {"GPS - Fix timeout (in seconds)", ConfigType::GPSFixTimeout, sizeof(ConfigurationParameters::_gnssFixTimeout), &configvalues._gnssFixTimeout, ConfigurationParameters::SetUint16},
         {"GPS - Dynamic Model", ConfigType::GPSDynamicModel, sizeof(ConfigurationParameters::_gnssDynamicModel), &configvalues._gnssDynamicModel, ConfigurationParameters::SetUint8},
         {"GPS - Position Accuracy", ConfigType::GPSHDOPLimit, sizeof(ConfigurationParameters::_gnssHDOPLimit), &configvalues._gnssHDOPLimit, ConfigurationParameters::SetUint16},        
+        {"GPS - PowerSave mode", ConfigType::GPSPowerSaveMode, sizeof(ConfigurationParameters::_gnssPowerSaveMode), &configvalues._gnssPowerSaveMode, ConfigurationParameters::SetUint8},
         {"LoraWAN - TX Power", ConfigType::LORA_TXPower, sizeof(ConfigurationParameters::_loraTXPower), &configvalues._loraTXPower, ConfigurationParameters::SetInt8},
         {"LoraWAN - DataRate", ConfigType::LORA_DataRate, sizeof(ConfigurationParameters::_loraDataRate), &configvalues._loraDataRate, ConfigurationParameters::SetInt8},
         {"LoraWAN - ADR Enabled", ConfigType::LORA_ADREnabled, sizeof(ConfigurationParameters::_loraADREnabled), &configvalues._loraADREnabled, ConfigurationParameters::SetBool},
