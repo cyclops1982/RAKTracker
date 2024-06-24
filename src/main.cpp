@@ -88,14 +88,6 @@ void setup()
 
   // We should also disable SBAS and IMES via UBX-CFG-GNSS
   // We should also turn of time-pulses via UBX-CFG-TP5
-  // We should be doing Power Save Mode ON/OFF (PSMOO) Operation
-
-  // if (!g_GNSS.setPowerManagement(SFE_UBLOX_PMS_MODE_AGGRESSIVE_1HZ))
-  // {
-  //   SERIAL_LOG("Failed to setPowerManagement");
-  //   LedHelper::BlinkHalt(4);
-  // }
-
   sfe_ublox_pms_mode_e powerSaveMode = static_cast<sfe_ublox_pms_mode_e>(g_configParams.GetGNSSPowerSaveMode());
   SERIAL_LOG("PowerSaveMode is %d", powerSaveMode);
   if (powerSaveMode != SFE_UBLOX_PMS_MODE_INVALID)
@@ -210,9 +202,22 @@ void handleReceivedMessage()
           break;
         case ConfigType::GPSDynamicModel:
           SERIAL_LOG("Setting GNSS Dynamic Model to %u", g_configParams.GetGNSSDynamicModel());
-          g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel());
+          if (!g_GNSS.setDynamicModel((dynModel)g_configParams.GetGNSSDynamicModel()))
+          {
+            SERIAL_LOG("Failed to set Dynamic Model");
+          }
           g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_NAVCONF);
           break;
+        case ConfigType::GPSPowerSaveMode:
+        {
+          sfe_ublox_pms_mode_e powerSaveModeSomething = static_cast<sfe_ublox_pms_mode_e>(g_configParams.GetGNSSPowerSaveMode());
+          if (!g_GNSS.setPowerManagement(powerSaveModeSomething))
+          {
+            SERIAL_LOG("Failed to set powersave mode");
+          }
+          g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF);
+          break;
+        }
         case ConfigType::LORA_ADREnabled:
         case ConfigType::LORA_DataRate:
           SERIAL_LOG("Setting Lora DataRate to %u and ARD to %d", g_configParams.GetLoraDataRate(), g_configParams.GetLoraADREnabled());
@@ -245,9 +250,12 @@ void handleReceivedMessage()
 void doPeriodicUpdate()
 {
   SERIAL_LOG("Doing GPSFix");
-  sfe_ublox_pms_mode_e powerSaveMode = static_cast<sfe_ublox_pms_mode_e>(g_configParams.GetGNSSPowerSaveMode());
 
-  if (powerSaveMode != SFE_UBLOX_PMS_MODE_INVALID)
+
+  // powersave has a few modes. We use INVALID for managing the power via IO2.
+  // Any other mode will just keep IO2 high and assume the GNSS module does everything
+  sfe_ublox_pms_mode_e powerSaveMode = static_cast<sfe_ublox_pms_mode_e>(g_configParams.GetGNSSPowerSaveMode());
+  if (powerSaveMode == SFE_UBLOX_PMS_MODE_INVALID)
   {
     SERIAL_LOG("Setting IO2 HIGH");
     digitalWrite(WB_IO2, HIGH);
@@ -299,7 +307,7 @@ void doPeriodicUpdate()
   uint16_t vbat_mv = BatteryHelper::readVBAT();
 
   // We are done with the sensors, so we can turn them off
-  if (powerSaveMode != SFE_UBLOX_PMS_MODE_INVALID)
+  if (powerSaveMode == SFE_UBLOX_PMS_MODE_INVALID)
   {
     SERIAL_LOG("Setting IO2 LOW");
     digitalWrite(WB_IO2, LOW);
