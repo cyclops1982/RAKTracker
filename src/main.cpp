@@ -67,7 +67,7 @@ void setup()
   Wire.begin();
 
   // Get all GPS stuff fired up
-  if (g_GNSS.begin() == false)
+  if (g_GNSS.begin(Wire) == false)
   {
     SERIAL_LOG("Ublox GPS not detected at default I2C address. Please check wiring. Halting.");
     LedHelper::BlinkHalt(3);
