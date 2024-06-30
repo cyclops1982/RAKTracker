@@ -269,7 +269,6 @@ void doPeriodicUpdate()
   // powersave has a few modes. We use INVALID for managing the power via IO2.
   // We set it HIGH ALWAYS here because you might have come out of a other mode.
   // IO2 is the power to the GPS, so that basically turns it on/off when we need it.
-  SERIAL_LOG("Setting IO2 HIGH");
   digitalWrite(WB_IO2, HIGH);
 
   uint16_t dopLimit = g_configParams.GetGNSSHDOPLimit();
