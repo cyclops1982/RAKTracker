@@ -116,6 +116,7 @@ void setup()
   SERIAL_LOG("GPS is setup, HDOP = %d", g_configParams.GetGNSSHDOPLimit());
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
 
+
   MotionHelper::InitMotionSensor(
       g_configParams.GetMotion1stThreshold(),
       g_configParams.GetMotion2ndThreshold(),
