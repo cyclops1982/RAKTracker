@@ -89,7 +89,7 @@ void setup()
   // We should also disable SBAS and IMES via UBX-CFG-GNSS
   // We should also turn of time-pulses via UBX-CFG-TP5
   sfe_ublox_pms_mode_e powerSaveMode = static_cast<sfe_ublox_pms_mode_e>(g_configParams.GetGNSSPowerSaveMode());
-  SERIAL_LOG("PowerSaveMode is %d", powerSaveMode);
+  SERIAL_LOG("PowerSave configuation is %d", powerSaveMode);
   if (powerSaveMode == SFE_UBLOX_PMS_MODE_INTERVAL)
   {
     SERIAL_LOG("Interval powersave mode is not supported.");
