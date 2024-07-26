@@ -1,20 +1,46 @@
-# Notes on some devices
+# Devices
 
 
-## SheepTracker 1
-uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xDD, 0xB1};
-uint8_t _loraNodeAppKey[16] = {0x66, 0x7b, 0x90, 0x71, 0xa1, 0x72, 0x18, 0xd4, 0xcd, 0xb2, 0x13, 0x04, 0x3f, 0xb2, 0x6b, 0x7c};
+## Sheep Tracker 1
+DevEUI: ac1f09fffe08ddb1
+AppKey: 667B9071A17218D4CDB213043FB26B7C
+Note: my dev device.
 
+## Sheep Tracker 2
+DevEUI: ac1f09fffe08f52b
+Appkey: 4BBB43EF4BC646221B0DCBE04454B61A
+MaxSave: Off
+Status: Working in chirpstack
+Note: V6 enclosure (modified) with different antenna
 
-## SheepTracker 2
-uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x08, 0xF5, 0x2B};
-uint8_t _loraNodeAppKey[16] = {0x4b, 0xbb, 0x43, 0xef, 0x4b, 0xc6, 0x46, 0x22, 0x1b, 0x0d, 0xcb, 0xe0, 0x44, 0x54, 0xb6, 0x1a};
+## Sheep Tracker 3
+DevAddr: 00986aba
+DevEUI: ac1f09fffe0cd78a
+Appkey: DE84D1DC587FF68EE0D53140FF76B289
+MaxSave: Off
+Status: Working in chirpstack
+Note: V6 enclosure
 
-## SheepTracker 3
-uint8_t _loraDevEUI[8] = {0xAC, 0x1F, 0x09, 0xFF, 0xFE, 0x0C, 0xD7, 0x8A};
-uint8_t _loraNodeAppKey[16] = {0xde, 0x84, 0xd1, 0xdc, 0x58, 0x7f, 0xf6, 0x8e, 0xe0, 0xd5, 0x31, 0x40, 0xff, 0x76, 0xb2, 0x89};
+## Sheep Tracker 4
+DevEUI: ac1f09fffe0cd8b6
+Appkey: F8B2BECC701FE6E49373A21FFB74471C
+Status: Working in chirpstack
+Note: V7 enclosure.
+MaxSave: unknown
 
-## SheepTracker 4
-This is version 4.2
-LORA_DevEUI = 0x48 = AC1F09FFFE0CD8B6
-LORA_NodeAppKey = 0x49 = f8b2becc701fe6e49373a21ffb74471c
+## Sheep Tracker 5
+DevEUI: ac1f09fffe0cd85c
+Appkey: D78F32D5AFD25250D242C876C1C750F1
+MaxSave: Off
+Status: Working in chirpstack
+Note: 
+- This is the v4.2 enclosure and it looks like there is interfernce from the antenna crossing the PCB
+- Now with short antenna for lora
+
+## Sheep Tracker 6
+DevAddr: 0043886f
+DevEUI: ac1f09fffe0cd8fc
+Appkey: E5297A232C30BE2912F35D4A792EEB75
+MaxSave: Off
+Status: On sheep
+Note: V7 enclosure
