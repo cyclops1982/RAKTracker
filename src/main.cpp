@@ -138,6 +138,11 @@ void setup()
 
 bool SendData()
 {
+  SERIAL_LOG("SENDING LORA DATA:");
+  for (uint8_t x = 0; x < g_SendLoraData.buffsize; x++)
+  {
+    SERIAL_LOG("%d: 0x%02X", x, g_SendLoraData.buffer[x]);
+  }
 #ifndef LORAWAN_FAKE
   if (!g_lorawan_joined)
   {
@@ -253,6 +258,25 @@ void handleReceivedMessage()
               g_configParams.GetMotion2ndThreshold(),
               g_configParams.GetMotion1stDuration(),
               g_configParams.GetMotion2ndDuration());
+          break;
+        case ConfigType::SendConfig:
+          memset(g_SendLoraData.buffer, 0, LORAWAN_BUFFER_SIZE);
+          int size = 0;
+          g_SendLoraData.port = 2;
+          g_SendLoraData.buffer[size++] = 0x03; // device ID
+          g_SendLoraData.buffer[size++] = 0xFF; // CONFIG
+          size_t howmanyoptions = 0;
+          ConfigOption *allConfigOptions = g_configParams.GetConfigs(&howmanyoptions);
+          for (size_t xx = 0; xx < howmanyoptions; xx++)
+          {
+            ConfigOption conff = allConfigOptions[xx];
+            g_SendLoraData.buffer[size++] = conff.configType;
+            for (size_t y = 0; y< conff.sizeOfOption; y++) {
+              g_SendLoraData.buffer[size++] = ((uint8_t *)conff.value)[y];
+            }
+          }
+          g_SendLoraData.buffsize = size;
+          SendData();
           break;
         }
         i += conf.sizeOfOption; // jump to the next one
@@ -386,6 +410,7 @@ void doPeriodicUpdate()
 
   g_SendLoraData.buffsize = size;
   SendData();
+  SERIAL_LOG("SENDDATA DONE");
 
   g_msgcount++;
 };
