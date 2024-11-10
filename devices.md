@@ -1,6 +1,5 @@
 # Devices
 
-
 ## Sheep Tracker 1
 DevEUI: ac1f09fffe08ddb1
 AppKey: 667B9071A17218D4CDB213043FB26B7C
@@ -11,7 +10,7 @@ DevEUI: ac1f09fffe08f52b
 Appkey: 4BBB43EF4BC646221B0DCBE04454B61A
 MaxSave: Off
 Status: Working in chirpstack
-Note: V6 enclosure (modified) with different antenna
+Note: V6 enclosure (modified) with large antenna on size.
 
 ## Sheep Tracker 3
 DevAddr: 00986aba
@@ -19,7 +18,7 @@ DevEUI: ac1f09fffe0cd78a
 Appkey: DE84D1DC587FF68EE0D53140FF76B289
 MaxSave: Off
 Status: Working in chirpstack
-Note: V6 enclosure
+Note: V7 enclosure with large LoRa antenna on the top side.
 
 ## Sheep Tracker 4
 DevEUI: ac1f09fffe0cd8b6
@@ -27,6 +26,7 @@ Appkey: F8B2BECC701FE6E49373A21FFB74471C
 Status: Working in chirpstack
 Note: V7 enclosure.
 MaxSave: unknown
+Note: Modified to have (small) antenna on the side.
 
 ## Sheep Tracker 5
 DevEUI: ac1f09fffe0cd85c
@@ -36,6 +36,8 @@ Status: Working in chirpstack
 Note: 
 - This is the v4.2 enclosure and it looks like there is interfernce from the antenna crossing the PCB
 - Now with short antenna for lora
+- [2024-08-01] Removed from badskop farm because it just didn't charge enough with the sun as it is in SA.
+
 
 ## Sheep Tracker 6
 DevAddr: 0043886f
@@ -43,4 +45,6 @@ DevEUI: ac1f09fffe0cd8fc
 Appkey: E5297A232C30BE2912F35D4A792EEB75
 MaxSave: Off
 Status: On sheep
-Note: V7 enclosure
+Note: 
+- V7 enclosure
+- [2024-08-02] Removed as probably broken
