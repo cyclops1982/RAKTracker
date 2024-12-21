@@ -50,7 +50,6 @@ void setup()
   }
 #endif
   SERIAL_LOG("Setup start.");
-  delay(500);
   SERIAL_LOG("Starting %s", VERSIONSTRING)
 
   if (!g_configParams.InitConfig())
