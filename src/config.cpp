@@ -161,7 +161,7 @@ bool ConfigHelper::InitConfig()
     InternalFS.begin();
     if (!InternalFS.exists(CONFIG_NAME))
     {
-        SERIAL_LOG("No Configuration exists. Saving current.")
+        SERIAL_LOG("No Configuration exists. Saving current to %s.", CONFIG_NAME)
         SaveConfig();
     }
 
@@ -175,7 +175,7 @@ bool ConfigHelper::InitConfig()
     }
     lora_file.read((uint8_t *)&configvalues, sizeof(ConfigurationParameters));
     lora_file.close();
-    SERIAL_LOG("Loaded configuration from flash")
+    SERIAL_LOG("Loaded configuration (%s) from flash", CONFIG_NAME)
 
     // This commented bit of code can be used to override (/hardcode) some of the values. This makes sure that even
     // if you had this in the config, you'd overwrite it to the default value.
