@@ -62,12 +62,12 @@ struct ConfigurationParameters
 
     // Config settings
     uint16_t _sleeptime0 = 300; // in seconds
-    uint16_t _sleeptime1 = 120;
-    uint16_t _sleeptime2 = 30;
+    uint16_t _sleeptime1 = 300;
+    uint16_t _sleeptime2 = 300;
     uint16_t _gnssFixTimeout = 120; // in seconds
     uint8_t _gnssDynamicModel = dynModel::DYN_MODEL_PEDESTRIAN;
     uint8_t _gnssPowerSaveMode = SFE_UBLOX_PMS_MODE_INVALID;
-    uint16_t _gnssHDOPLimit = 250;
+    uint16_t _gnssHDOPLimit = 200;
 
     uint8_t _motion1stThreshold = 0x00;
     uint8_t _motion2ndThreshold = 0x00;
