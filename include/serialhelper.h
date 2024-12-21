@@ -1,7 +1,7 @@
 #ifndef SERIALHELPER_H
 #define SERIALHELPER_H
 
-#define MAX_SAVE
+//#define MAX_SAVE
 
 #ifndef MAX_SAVE
 #define SERIAL_LOG(fmt, args...)    \

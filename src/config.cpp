@@ -86,7 +86,7 @@ void ConfigHelper::SetConfig(uint8_t *arr, uint8_t length)
         for (uint8_t i = 0; i < length; i++)
         {
             for (size_t x = 0; x < sizeof(configs) / sizeof(ConfigOption); x++)
-            {                
+            {
                 const ConfigOption *conf = &configs[x];
                 if (arr[i] == ConfigType::ClearConfig)
                 {
@@ -151,6 +151,29 @@ bool ConfigHelper::SaveConfig()
 
 void ConfigHelper::ResetConfig()
 {
+    File lora_file(InternalFS);
+
+    for (auto file : OLD_CONFIG_NAMES)
+    {
+        if (InternalFS.exists(file))
+        {
+            if (InternalFS.remove(file))
+            {
+                SERIAL_LOG("Removed old config: %s", file);
+            } else {
+                SERIAL_LOG("Failed to remove old config: %s", file)
+            }
+        }
+    }
+    if (InternalFS.remove(CONFIG_NAME))
+    {
+        SERIAL_LOG("Removed old config: %s", CONFIG_NAME);
+    }
+    else
+    {
+        SERIAL_LOG("Failed to remove old config: %s", CONFIG_NAME)
+    }
+
     SERIAL_LOG("Resetting config to default");
     ConfigurationParameters params;
     configvalues = params;
@@ -179,9 +202,9 @@ bool ConfigHelper::InitConfig()
 
     // This commented bit of code can be used to override (/hardcode) some of the values. This makes sure that even
     // if you had this in the config, you'd overwrite it to the default value.
-    //ConfigurationParameters defaults;
-    //memcpy(configvalues._loraDevEUI, defaults._loraDevEUI, 8);
-    //memcpy(configvalues._loraNodeAppKey, defaults._loraNodeAppKey, 16);
-    //SaveConfig();
+    // ConfigurationParameters defaults;
+    // memcpy(configvalues._loraDevEUI, defaults._loraDevEUI, 8);
+    // memcpy(configvalues._loraNodeAppKey, defaults._loraNodeAppKey, 16);
+    // SaveConfig();
     return true;
 }
