@@ -31,7 +31,8 @@ void LoraHelper::lorawan_unconf_finished(void)
 
 void LoraHelper::lorawan_conf_finished(bool result)
 {
-    SERIAL_LOG("Confirmed TX %s\n", result ? "success" : "failed");
+    SERIAL_LOG("Confirmed TX %s", result ? "success" : "failed");
+    g_lorawan_msgconfirmed = result;
 }
 
 void LoraHelper::lorawan_join_failed_handler(void)

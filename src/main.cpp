@@ -20,6 +20,7 @@ EventType g_EventType = EventType::None;
 uint8_t g_rcvdLoRaData[LORAWAN_BUFFER_SIZE];
 uint8_t g_rcvdDataLen = 0;
 bool g_lorawan_joined = false;
+bool g_lorawan_msgconfirmed = false;
 
 void periodicWakeup(TimerHandle_t unused)
 {
@@ -118,7 +119,6 @@ void setup()
   SERIAL_LOG("GPS is setup, HDOP = %d", g_configParams.GetGNSSHDOPLimit());
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
 
-
   MotionHelper::InitMotionSensor(
       g_configParams.GetMotion1stThreshold(),
       g_configParams.GetMotion2ndThreshold(),
@@ -149,19 +149,41 @@ bool SendData()
   }
   if (g_lorawan_joined)
   {
-    lmh_error_status loraSendState = lmh_send(&g_SendLoraData, (lmh_confirm)g_configParams.GetLoraRequireConfirmation());
 
-    if (loraSendState == LMH_SUCCESS)
+    g_lorawan_msgconfirmed = false; // gets set in lorahelper.cpp
+    lmh_confirm needConfirm = (lmh_confirm)g_configParams.GetLoraRequireConfirmation();
+    for (ushort attempt = 0; attempt < 5; attempt++)
     {
-      SERIAL_LOG("LoRaSend ok");
-      return true;
+      lmh_error_status loraSendState = lmh_send(&g_SendLoraData, needConfirm);
+      SERIAL_LOG("lmh_send result: %d; Confirmation needed?: %d", loraSendState, needConfirm);
+      if (loraSendState == LMH_SUCCESS) // this status just means that we could send. As in, it's not busy or an error. It does not mean that the CONFIRMATION worked.
+      {
+        if (needConfirm == LMH_CONFIRMED_MSG)
+        {
+          for (ushort confirmationCount = 0; confirmationCount < 5; confirmationCount++)
+          {
+            int totalDelay = 1000 * std::pow(2, confirmationCount);
+            SERIAL_LOG("Exponential waiting for confirmation: %d", totalDelay);
+            delay(totalDelay);
+            SERIAL_LOG("msg_confirmred?: %d", g_lorawan_msgconfirmed);
+            if (g_lorawan_msgconfirmed == true)
+            {
+              break;
+            }
+          }
+          return g_lorawan_msgconfirmed;
+        }
+        return true;
+      }
+      else
+      {
+        int totalDelay = 2000 * std::pow(2, attempt);
+        SERIAL_LOG("Exponential waiting for lora to send: %d", totalDelay)
+        delay(totalDelay);
+      }
     }
-    else
-    {
-      LedHelper::BlinkStatus(3);
-      SERIAL_LOG("LorRaSend failed: %d\n", loraSendState);
-      return false;
-    }
+    LedHelper::BlinkStatus(3);
+    return false;
   }
   else
   {
@@ -282,9 +304,9 @@ void doPeriodicUpdate()
   bool gpsPVTStatus = g_GNSS.getPVT();
   while (!gpsPVTStatus)
   {
-    gpsPVTStatus = g_GNSS.getPVT();
     SERIAL_LOG("PVT result: %d", gpsPVTStatus);
-    delay(1000);
+    gpsPVTStatus = g_GNSS.getPVT();
+    delay(500);
   }
   while (1)
   {
@@ -363,6 +385,8 @@ void doPeriodicUpdate()
 
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL >> 8;
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL;
+
+  // TODO: we should add HDOP to this, because we need to know.
 
   // Add motionresult
   if (MotionHelper::IsMotionEnabled())
