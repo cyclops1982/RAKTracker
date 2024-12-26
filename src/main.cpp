@@ -202,6 +202,11 @@ bool SendData()
 
 void handleReceivedMessage()
 {
+  if (g_rcvdDataLen == 0)
+  {
+    SERIAL_LOG("Running handleReceivedMessage, but g_rcvdDataLen is 0");
+    return;
+  }
   /*  for (uint8_t i = 0; i < g_rcvdDataLen; i++)
   {
     char hexstr[5];
@@ -209,6 +214,7 @@ void handleReceivedMessage()
     SERIAL_LOG("DATA %d: %s", i, hexstr)
   }
   */
+
   g_configParams.SetConfig(g_rcvdLoRaData, g_rcvdDataLen);
 
   // Some parameters require some re-initialization, which is what we do here for those cases.
@@ -284,6 +290,7 @@ void handleReceivedMessage()
       }
     }
   }
+  g_rcvdDataLen = 0;
 }
 
 void doPeriodicUpdate()
@@ -414,10 +421,16 @@ void doPeriodicUpdate()
   SendData();
 
   g_msgcount++;
+  if (g_EventType == EventType::LoraDataReceived) // check if we received some data, and if so, fire things off
+  {
+    SERIAL_LOG("Running handleReceivedMesage from DoPeriodicUpdate()");
+    handleReceivedMessage();
+  }
 };
 
 void loop()
 {
+  SERIAL_LOG("LOOP()");
   if (xSemaphoreTake(g_taskEvent, portMAX_DELAY) == pdTRUE)
   {
     SERIAL_LOG("Running loop for EventType: %d", g_EventType);
