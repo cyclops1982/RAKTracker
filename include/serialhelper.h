@@ -8,6 +8,7 @@
     {                               \
         Serial.printf(fmt, ##args); \
         Serial.println();           \
+        Serial.flush();             \
     }
 #else
 #define SERIAL_LOG(fmt, args...) ;
