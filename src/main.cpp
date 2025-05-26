@@ -20,7 +20,6 @@ EventType g_EventType = EventType::None;
 uint8_t g_rcvdLoRaData[LORAWAN_BUFFER_SIZE];
 uint8_t g_rcvdDataLen = 0;
 bool g_lorawan_joined = false;
-bool g_lorawan_msgconfirmed = false;
 
 void periodicWakeup(TimerHandle_t unused)
 {
@@ -149,40 +148,27 @@ bool SendData()
   }
   if (g_lorawan_joined)
   {
-
-    g_lorawan_msgconfirmed = false; // gets set in lorahelper.cpp
     lmh_confirm needConfirm = (lmh_confirm)g_configParams.GetLoraRequireConfirmation();
     for (ushort attempt = 0; attempt < 5; attempt++)
     {
       lmh_error_status loraSendState = lmh_send(&g_SendLoraData, needConfirm);
       SERIAL_LOG("lmh_send result: %d; Confirmation needed?: %d", loraSendState, needConfirm);
-      if (loraSendState == LMH_SUCCESS) // this status just means that we could send. As in, it's not busy or an error. It does not mean that the CONFIRMATION worked.
+      // lmh_send can return LMH_SUCCESS, LMH_BUSY or LMH_ERROR
+      if (loraSendState == LMH_ERROR) {
+        SERIAL_LOG("Failed to LMH_SEND due to LMH_ERROR");
+        LedHelper::BlinkStatus(5);
+      }
+      if (loraSendState == LMH_BUSY)
       {
-        if (needConfirm == LMH_CONFIRMED_MSG)
-        {
-          for (ushort confirmationCount = 0; confirmationCount < 5; confirmationCount++)
-          {
-            int totalDelay = 1000 * std::pow(2, confirmationCount);
-            SERIAL_LOG("Exponential waiting for confirmation: %d", totalDelay);
-            delay(totalDelay);
-            SERIAL_LOG("msg_confirmred?: %d", g_lorawan_msgconfirmed);
-            if (g_lorawan_msgconfirmed == true)
-            {
-              break;
-            }
-          }
-          return g_lorawan_msgconfirmed;
-        }
+        LedHelper::BlinkStatus(3);
+
+        int totalDelay = 1000 * std::pow(2, attempt);
+        SERIAL_LOG("Exponential waiting for confirmation: %d", totalDelay);
+        delay(totalDelay);
         return true;
       }
-      else
-      {
-        int totalDelay = 2000 * std::pow(2, attempt);
-        SERIAL_LOG("Exponential waiting for lora to send: %d", totalDelay)
-        delay(totalDelay);
-      }
     }
-    LedHelper::BlinkStatus(3);
+    
     return false;
   }
   else
@@ -445,6 +431,14 @@ void loop()
       break;
     case EventType::Timer:
       doPeriodicUpdate();
+      break;
+    case EventType::LoraSendUnsuccesfull:
+      SERIAL_LOG("Failed to send data, performing fixes again");
+      LedHelper::BlinkStatus(6);
+      doPeriodicUpdate();
+      break;
+    case EventType::LoraSendSuccesfull:
+      SERIAL_LOG("Succesufully send Lora Data");
       break;
     case EventType::None:
     default:
