@@ -11,6 +11,7 @@ void LedHelper::init()
         delay(100);
         digitalWrite(LED_BLUE, LOW);
         digitalWrite(LED_GREEN, LOW);
+        // at startup, do a quick blink
         digitalWrite(LED_BLUE, HIGH);
         digitalWrite(LED_GREEN, HIGH);
         delay(500);

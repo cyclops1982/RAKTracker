@@ -100,11 +100,7 @@ void LoraHelper::lorawan_rx_handler(lmh_app_data_t *app_data)
         g_rcvdDataLen = app_data->buffsize;
         SERIAL_LOG("Setting g_EventType to LoraDataReceived");
         g_EventType = EventType::LoraDataReceived;
-
-        if (g_taskEvent != NULL)
-        {
-            xSemaphoreGive(g_taskEvent);
-        }
+        xSemaphoreGive(g_taskEvent);
 
         break;
     default:

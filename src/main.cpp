@@ -30,6 +30,7 @@ void periodicWakeup(TimerHandle_t unused)
 
 void setup()
 {
+  g_taskEvent = xSemaphoreCreateBinary();
   delay(1000); // For whatever reason, some pins/things are not available at startup right away. So we wait for a bit. This also helps when we want to connect to console.
   LedHelper::init();
   // Initialize serial for output.
@@ -58,7 +59,7 @@ void setup()
   }
   delay(1000);
   // Create semaphore for task handling.
-  g_taskEvent = xSemaphoreCreateBinary();
+  
 
   // Turn on power to sensors
   pinMode(WB_IO2, OUTPUT);
@@ -131,8 +132,8 @@ void setup()
 #endif
 
   // Go into sleep mode
-  xSemaphoreGive(g_taskEvent);
   g_EventType = EventType::Timer;
+  xSemaphoreGive(g_taskEvent);
   g_taskWakeupTimer.begin(g_configParams.GetSleepTime0InSeconds() * 1000, periodicWakeup);
   g_taskWakeupTimer.start();
 }
@@ -435,6 +436,7 @@ void loop()
     case EventType::LoraSendUnsuccesfull:
       SERIAL_LOG("Failed to send data, performing fixes again");
       LedHelper::BlinkStatus(6);
+      //TODO: we need to do some exponential backoff here
       doPeriodicUpdate();
       break;
     case EventType::LoraSendSuccesfull:
