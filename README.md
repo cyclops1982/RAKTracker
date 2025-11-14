@@ -28,9 +28,12 @@ We're using VSCode and have added the .vscode folder as well to make it easy.
 Also note that the git repo has submodules, so you'll need to do a `git submodule init && git submodule update` after the clone.
 
 
-## Error notes
+## Halt codes:
 
-The thing will blink a number of times when it fails. The blinks indicate what's wrong:
+The blue led is used to indicate halt codes. Halt codes are used for an unrecoverable error. Quite often this is hardware that's missing or can't be initialized.
+The halt codes blink pretty fast (200ms between blink), with 2 second between the blinks.
+
+
 ```
 2 = Initialization of config failed
 3 = GPS Initialization failed
@@ -39,13 +42,16 @@ The thing will blink a number of times when it fails. The blinks indicate what's
 
 ```
 
-## BlinkStatus
+## Status blinks
 
-In some cases, we blink a status code. These are the various status blinks:
+The device also provides a blinking pattern for failed things. These are more for debug purposses as in normal operation you wouldn't look at them.
+We have however made them unique, so that you can just look at the blinks. There is half a second between the blink.
 
 ```
-2 = Lora Join failed
-3 = Lora send failed
+2 = Lora join failed
+3 = Lora send busy
 4 = GPS fix timeout
+5 = Lora send error
+6 = Lora confirmation failed, resending
 
 ```

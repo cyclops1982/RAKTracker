@@ -11,6 +11,7 @@ void LedHelper::init()
         delay(100);
         digitalWrite(LED_BLUE, LOW);
         digitalWrite(LED_GREEN, LOW);
+        // at startup, do a quick blink
         digitalWrite(LED_BLUE, HIGH);
         digitalWrite(LED_GREEN, HIGH);
         delay(500);
@@ -34,10 +35,6 @@ void LedHelper::BlinkStatus(uint blickcount)
 {
     init();
     digitalWrite(LED_BLUE, LOW);  // make sure it's low.
-    digitalWrite(LED_BLUE, HIGH); // go high for short amount of time (fixed)
-    delay(100);
-    digitalWrite(LED_BLUE, LOW);
-    delay(1000);
     for (uint i = 0; i < blickcount; i++)
     {
         digitalWrite(LED_BLUE, HIGH); // High for indicated amount of time.
@@ -59,6 +56,6 @@ void LedHelper::BlinkHalt(uint blickcount)
             digitalWrite(LED_BLUE, LOW);
             delay(200);
         }
-        delay(1000);
+        delay(2000);
     }
 }
