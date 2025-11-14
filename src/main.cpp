@@ -15,24 +15,23 @@ SoftwareTimer g_taskWakeupTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
 
-SemaphoreHandle_t g_taskEvent = NULL;
+SemaphoreHandle_t g_semaphore = NULL;
+BaseType_t g_taskHighPrio = pdTRUE;
 EventType g_EventType = EventType::None;
+
 uint8_t g_rcvdLoRaData[LORAWAN_BUFFER_SIZE];
 uint8_t g_rcvdDataLen = 0;
 bool g_lorawan_joined = false;
 
 void periodicWakeup(TimerHandle_t unused)
 {
-  // Give the semaphore, so the loop task will wake up
-  g_EventType = EventType::Timer;
-  xSemaphoreGiveFromISR(g_taskEvent, pdFALSE);
+  g_EventType |= EventType::Timer;
+  xSemaphoreGiveFromISR(g_semaphore, &g_taskHighPrio);
 }
 
 void setup()
 {
-  g_taskEvent = xSemaphoreCreateBinary();
-  delay(1000); // For whatever reason, some pins/things are not available at startup right away. So we wait for a bit. This also helps when we want to connect to console.
-  LedHelper::init();
+  delay(1000);
   // Initialize serial for output.
 #ifndef MAX_SAVE
   time_t timeout = millis();
@@ -40,9 +39,9 @@ void setup()
   // check if serial has become available and if not, just wait for it.
   while (!Serial)
   {
-    if ((millis() - timeout) < 5000)
+    if ((millis() - timeout) < 15000)
     {
-      delay(100);
+      delay(1000);
     }
     else
     {
@@ -52,6 +51,12 @@ void setup()
 #endif
   SERIAL_LOG("Setup start.");
   SERIAL_LOG("Starting %s", VERSIONSTRING)
+  delay(500);
+  g_semaphore = xSemaphoreCreateBinary();
+
+  //	xSemaphoreGive(g_semaphore);
+  //	xSemaphoreTake(g_semaphore, 10);
+  LedHelper::init();
 
   if (!g_configParams.InitConfig())
   {
@@ -59,7 +64,6 @@ void setup()
   }
   delay(1000);
   // Create semaphore for task handling.
-  
 
   // Turn on power to sensors
   pinMode(WB_IO2, OUTPUT);
@@ -133,7 +137,7 @@ void setup()
 
   // Go into sleep mode
   g_EventType = EventType::Timer;
-  xSemaphoreGive(g_taskEvent);
+  xSemaphoreGive(g_semaphore);
   g_taskWakeupTimer.begin(g_configParams.GetSleepTime0InSeconds() * 1000, periodicWakeup);
   g_taskWakeupTimer.start();
 }
@@ -155,7 +159,8 @@ bool SendData()
       lmh_error_status loraSendState = lmh_send(&g_SendLoraData, needConfirm);
       SERIAL_LOG("lmh_send result: %d; Confirmation needed?: %d", loraSendState, needConfirm);
       // lmh_send can return LMH_SUCCESS, LMH_BUSY or LMH_ERROR
-      if (loraSendState == LMH_ERROR) {
+      if (loraSendState == LMH_ERROR)
+      {
         SERIAL_LOG("Failed to LMH_SEND due to LMH_ERROR");
         LedHelper::BlinkStatus(5);
       }
@@ -166,16 +171,17 @@ bool SendData()
         int totalDelay = 1000 * std::pow(2, attempt);
         SERIAL_LOG("Exponential waiting for confirmation: %d", totalDelay);
         delay(totalDelay);
+      }
+      if (loraSendState == LMH_SUCCESS)
+      {
+        SERIAL_LOG("LMH_SEND succeeded");
         return true;
       }
     }
-    
+
     return false;
   }
-  else
-  {
-    SERIAL_LOG("SKIPPING SEND - We are not joined to a network");
-  }
+  SERIAL_LOG("SKIPPING SEND - We are not joined to a network");
   return false;
 #else
   SERIAL_LOG("NOT SENDING lorawan packages as we have LORAWAN_FAKE set. Data that would be send:");
@@ -408,49 +414,33 @@ void doPeriodicUpdate()
   SendData();
 
   g_msgcount++;
-  if (g_EventType == EventType::LoraDataReceived) // check if we received some data, and if so, fire things off
-  {
-    SERIAL_LOG("Running handleReceivedMesage from DoPeriodicUpdate()");
-    handleReceivedMessage();
-  }
+
 };
 
 void loop()
 {
-  SERIAL_LOG("LOOP()");
-  if (xSemaphoreTake(g_taskEvent, portMAX_DELAY) == pdTRUE)
+  SERIAL_LOG("loop() - waiting for semaphore");
+  xSemaphoreTake(g_semaphore, portMAX_DELAY);
+
+  SERIAL_LOG("Semaphore taken with eventype: %d", g_EventType);
+
+#ifndef MAX_SAVE
+  digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
+#endif
+
+  if ((g_EventType & EventType::LoraDataReceived) == EventType::LoraDataReceived)
   {
-    SERIAL_LOG("Running loop for EventType: %d", g_EventType);
-
-#ifndef MAX_SAVE
-    digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
-#endif
-    switch (g_EventType)
-    {
-    case EventType::LoraDataReceived:
-      handleReceivedMessage();
-      break;
-    case EventType::Timer:
-      doPeriodicUpdate();
-      break;
-    case EventType::LoraSendUnsuccesfull:
-      SERIAL_LOG("Failed to send data, performing fixes again");
-      LedHelper::BlinkStatus(6);
-      //TODO: we need to do some exponential backoff here
-      doPeriodicUpdate();
-      break;
-    case EventType::LoraSendSuccesfull:
-      SERIAL_LOG("Succesufully send Lora Data");
-      break;
-    case EventType::None:
-    default:
-      SERIAL_LOG("In loop, but without correct g_EventType")
-      break;
-    };
-
-#ifndef MAX_SAVE
-    digitalWrite(LED_GREEN, LOW);
-#endif
+    handleReceivedMessage();
+    g_EventType &= ~EventType::LoraDataReceived;
   }
-  xSemaphoreTake(g_taskEvent, 10);
+  if ((g_EventType & EventType::Timer) == EventType::Timer)
+  {
+    doPeriodicUpdate();
+    g_EventType &= ~EventType::Timer;
+  }
+  SERIAL_LOG("EventType: %d", g_EventType);
+
+#ifndef MAX_SAVE
+  digitalWrite(LED_GREEN, LOW);
+#endif
 }

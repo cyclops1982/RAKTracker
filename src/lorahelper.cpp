@@ -32,15 +32,6 @@ void LoraHelper::lorawan_unconf_finished(void)
 void LoraHelper::lorawan_conf_finished(bool result)
 {
     SERIAL_LOG("Confirmed TX %s", result ? "success" : "failed");
-    if (result)
-    {
-        g_EventType = EventType::LoraSendSuccesfull;
-    }
-    else
-    {
-        g_EventType = EventType::LoraSendUnsuccesfull;
-    }
-    xSemaphoreGive(g_taskEvent);
 }
 
 void LoraHelper::lorawan_join_failed_handler(void)
@@ -98,10 +89,10 @@ void LoraHelper::lorawan_rx_handler(lmh_app_data_t *app_data)
         // Copy the data into loop data buffer
         memcpy(g_rcvdLoRaData, app_data->buffer, app_data->buffsize);
         g_rcvdDataLen = app_data->buffsize;
-        SERIAL_LOG("Setting g_EventType to LoraDataReceived");
-        g_EventType = EventType::LoraDataReceived;
-        xSemaphoreGive(g_taskEvent);
 
+        SERIAL_LOG("Setting g_EventType to LoraDataReceived");
+        g_EventType |= EventType::LoraDataReceived;
+        xSemaphoreGiveFromISR(g_semaphore, &g_taskHighPrio);
         break;
     default:
         SERIAL_LOG("Received lora data on unsupported PORT");
