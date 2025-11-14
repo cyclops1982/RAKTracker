@@ -123,11 +123,16 @@ void setup()
   SERIAL_LOG("GPS is setup, HDOP = %d", g_configParams.GetGNSSHDOPLimit());
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
 
+  pinMode(WB_IO5, INPUT);
+  pinMode(WB_IO6, INPUT);
+
   MotionHelper::InitMotionSensor(
       g_configParams.GetMotion1stThreshold(),
       g_configParams.GetMotion2ndThreshold(),
       g_configParams.GetMotion1stDuration(),
       g_configParams.GetMotion2ndDuration());
+  attachInterrupt(digitalPinToInterrupt(WB_IO5), MotionHelper::Motion1stInterrupt, RISING);
+  attachInterrupt(digitalPinToInterrupt(WB_IO6), MotionHelper::Motion2ndInterrupt, RISING);
 
 #ifndef LORAWAN_FAKE
   // Lora stuff
@@ -414,7 +419,6 @@ void doPeriodicUpdate()
   SendData();
 
   g_msgcount++;
-
 };
 
 void loop()
@@ -427,6 +431,19 @@ void loop()
 #ifndef MAX_SAVE
   digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
 #endif
+  if ((g_EventType & EventType::Motion1stInterrupt) == EventType::Motion1stInterrupt)
+  {
+    SERIAL_LOG("Motion 1st Interrupt detected");
+    g_EventType &= ~EventType::Motion1stInterrupt;
+    MotionHelper::GetMotionInterupts();
+  }
+  if ((g_EventType & EventType::Motion2ndInterrupt) == EventType::Motion2ndInterrupt)
+  {
+    SERIAL_LOG("Motion 2nd Interrupt detected");
+    //doPeriodicUpdate();
+    g_EventType &= ~EventType::Motion2ndInterrupt;
+    MotionHelper::GetMotionInterupts();
+  }
 
   if ((g_EventType & EventType::LoraDataReceived) == EventType::LoraDataReceived)
   {

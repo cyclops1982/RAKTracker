@@ -19,6 +19,8 @@ class MotionHelper {
         static void InitMotionSensor(uint8_t firstThreshold, uint8_t secondThreshold, uint8_t firstDuration, uint8_t secondDuration);
         static uint8_t GetMotionInterupts();
         static bool IsMotionEnabled();
+        static void Motion1stInterrupt();
+        static void Motion2ndInterrupt();
 
 };
 #else
@@ -29,6 +31,9 @@ class MotionHelper {
             return 0xFF;
         };
         static bool IsMotionEnabled() { return false; };
+        static void Motion1stInterrupt();
+        static void Motion2ndInterrupt();
+
 
 };
 

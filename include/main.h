@@ -10,6 +10,8 @@ enum class EventType
   None = 0 << 0,
   Timer = 1 << 1,
   LoraDataReceived = 1 << 2,
+  Motion1stInterrupt = 1 << 3,
+  Motion2ndInterrupt = 1 << 4
 };
 
 inline EventType operator|(EventType a, EventType b)

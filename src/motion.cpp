@@ -1,4 +1,5 @@
 #include "motion.h"
+#include "main.h"
 
 #ifndef MOTION_DISABLED
 LIS3DH g_motionsensor(I2C_MODE, 0x18);
@@ -94,6 +95,21 @@ void MotionHelper::InitMotionSensor(uint8_t firstThreshold, uint8_t secondThresh
 
 
     SERIAL_LOG("Motion sensor initialized and threshold - 1/2nd threshold & 1/2nd duration: 0x%02X/0x%02X & 0x%02X/0x%02X", firstThreshold, secondThreshold, firstDuration,secondDuration);
+}
+
+
+void MotionHelper::Motion1stInterrupt()
+{
+    SERIAL_LOG("Motion1stInterrupt() - Motion 1st Interrupt triggered");
+    g_EventType |= EventType::Motion1stInterrupt;
+    xSemaphoreGiveFromISR(g_semaphore, &g_taskHighPrio);
+}
+
+void MotionHelper::Motion2ndInterrupt()
+{
+    SERIAL_LOG("Motion2ndInterrupt() - Motion 2nd Interrupt triggered");
+    g_EventType |= EventType::Motion2ndInterrupt;
+    xSemaphoreGiveFromISR(g_semaphore, &g_taskHighPrio);
 }
 
 #endif
