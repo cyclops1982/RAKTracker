@@ -406,7 +406,7 @@ void doPeriodicUpdate()
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL >> 8;
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL;
 
-  // TODO: we should add HDOP to this, because we need to know.
+  // TODO: consider including which motion trigger this was, so we know if it's more of an alarm or not?
 
   // Add motionresult
   if (MotionHelper::IsMotionEnabled())
