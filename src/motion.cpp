@@ -32,7 +32,7 @@ uint8_t MotionHelper::GetMotionInterupts()
     return motionresult;
 }
 
-void MotionHelper::InitMotionSensor(uint8_t firstThreshold, uint8_t secondThreshold, uint8_t firstDuration, uint8_t secondDuration)
+void MotionHelper::InitMotionSensor(uint8_t firstThreshold, uint8_t secondThreshold, uint8_t firstDuration, uint8_t secondDuration, uint8_t firstTimerInterval, uint8_t secondTimerInterval)
 {
 
     status_t sensorBeginResult = g_motionsensor.begin(false);
@@ -89,14 +89,23 @@ void MotionHelper::InitMotionSensor(uint8_t firstThreshold, uint8_t secondThresh
         }
         g_motionsensor.writeRegister(LIS3DH_CTRL_REG5, latch);
 
+        if (firstTimerInterval > 0 || secondTimerInterval > 0)
+        {
+            pinMode(WB_IO5, INPUT);
+            pinMode(WB_IO6, INPUT);
+            attachInterrupt(digitalPinToInterrupt(WB_IO5), MotionHelper::Motion1stInterrupt, RISING);
+            attachInterrupt(digitalPinToInterrupt(WB_IO6), MotionHelper::Motion2ndInterrupt, RISING);
+        } else {
+            detachInterrupt(digitalPinToInterrupt(WB_IO5));
+            detachInterrupt(digitalPinToInterrupt(WB_IO6));
+        }
+
         uint8_t dummy = 0;
         g_motionsensor.readRegister(&dummy, LIS3DH_REFERENCE); // reset to current position on initialize.
     }
 
-
-    SERIAL_LOG("Motion sensor initialized and threshold - 1/2nd threshold & 1/2nd duration: 0x%02X/0x%02X & 0x%02X/0x%02X", firstThreshold, secondThreshold, firstDuration,secondDuration);
+    SERIAL_LOG("Motion sensor initialized and threshold - 1/2nd threshold & 1/2nd duration & 1/2nd timer: 0x%02X/0x%02X & 0x%02X/0x%02X & 0x%02X/0x%02X", firstThreshold, secondThreshold, firstDuration, secondDuration, firstTimerInterval, secondTimerInterval);
 }
-
 
 void MotionHelper::Motion1stInterrupt()
 {

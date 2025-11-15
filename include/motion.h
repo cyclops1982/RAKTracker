@@ -16,7 +16,7 @@ class MotionHelper {
         /// @param secondThreshold 
         /// @param firstDuration 
         /// @param secondDuration 
-        static void InitMotionSensor(uint8_t firstThreshold, uint8_t secondThreshold, uint8_t firstDuration, uint8_t secondDuration);
+        static void InitMotionSensor(uint8_t firstThreshold, uint8_t secondThreshold, uint8_t firstDuration, uint8_t secondDuration, uint8_t firstTimerInterval, uint8_t secondTimerInterval);
         static uint8_t GetMotionInterupts();
         static bool IsMotionEnabled();
         static void Motion1stInterrupt();
@@ -26,7 +26,7 @@ class MotionHelper {
 #else
 class MotionHelper {
     public:
-        static void InitMotionSensor(uint8_t firstThreshold, uint8_t secondThreshold, uint8_t firstDuration, uint8_t secondDuration) {};
+        static void InitMotionSensor(uint8_t firstThreshold, uint8_t secondThreshold, uint8_t firstDuration, uint8_t secondDuration, uint8_t firstTimerInterval, uint8_t secondTimerInterval) {};
         static uint8_t GetMotionInterupts() {
             return 0xFF;
         };

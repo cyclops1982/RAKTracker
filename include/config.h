@@ -28,6 +28,13 @@ enum ConfigType
     MOTION_2ndThreshold = 0x52,
     MOTION_1stDuration = 0x53,
     MOTION_2ndDuration = 0x54,
+    MOTION_1stTimerInterval = 0x55,
+    MOTION_2ndTimerInterval = 0x56,
+    // Motion should have a 'wake up the interupt and do an update' mode, that mode should have a timer too though because otherwise we get into an endless loop of just updates.
+    // We can do this by having just a timer interval. If the timer is set, then we are enabled and it should do the thing according to the timer.
+    // if the timer is not set, then it's disabled and we just read the interrupts based on the current operation.
+    // since this is motion, the max timer should be 255 seconds. If you wanted it to be longer than that, then you might as well do the normal 5 min update with the normal intterrupt function.
+
     Restart = 0xF0,
     ClearConfig = 0xF1,
     SaveConfig = 0xF2
@@ -73,6 +80,8 @@ struct ConfigurationParameters
     uint8_t _motion2ndThreshold = 0x00;
     uint8_t _motion1stDuration = 0x00;
     uint8_t _motion2ndDuration = 0x00;
+    uint8_t _motion1stTimerInterval = 0x00;
+    uint8_t _motion2ndTimerInterval = 0x00;
     void *_dummy;
 
     int8_t _loraDataRate = DR_2;
@@ -119,6 +128,9 @@ public:
     uint8_t GetMotion1stThreshold() { return configvalues._motion1stThreshold; }
     uint8_t GetMotion2ndThreshold() { return configvalues._motion2ndThreshold; }
 
+    uint8_t GetMotion1stTimerInterval() { return configvalues._motion1stTimerInterval; }
+    uint8_t GetMotion2ndTimerInterval() { return configvalues._motion2ndTimerInterval; }
+
     ConfigOption *GetConfigs(size_t *size);
     void SetConfig(uint8_t *arr, uint8_t length);
     bool InitConfig();
@@ -129,22 +141,27 @@ private:
         Now, we could introduce versioning on the ConfigType and ConfigurationParameter so that we can write upgrade code.
         We could read the old file, load it and copy the values to the new configuration option and save that (into a new filename).
         This is all cool and would mean we can 'upgrade' without having to reset parameters.
-        In reality, we can only upgrade the firmware when the device is connected to USB, and thus the re-programming becomes a fairly easy.
+        In reality, we can only upgrade the firmware when the device is connected to USB, and thus there's a lot of effort involved anyway.
+        It is likely that those changes also mean a general reconfiguration of the device. The upgrade code also needs to be maintained, and how many versions do we want to support?
         In short: we will never really write 'upgrade code' to move from V1 to V2.  It is however practical to have the filename different,
         as we can then change that to ignore the 'old' settings.
+
+        The logic we've writen in SaveConfig() and InitConfig() will use CONFIG_NAME and throw away any of the files mentioned in OLD_CONFIG_NAMES;
         */
-    const char *CONFIG_NAME = "config_v5.bin";
-    const char *OLD_CONFIG_NAMES[4] = {
+    const char *CONFIG_NAME = "config_v6.bin";
+    const char *OLD_CONFIG_NAMES[5] = {
         "config_v1.bin",
         "config_v2.bin",
         "config_v3.bin",
-        "config_v4.bin"};
+        "config_v4.bin",
+        "config_v5.bin"
+    };
     bool SaveConfig();
     void ResetConfig();
 
     ConfigurationParameters configvalues;
 
-    ConfigOption configs[20] = {
+    ConfigOption configs[22] = {
         {"Sleep time between GPS fixes (in seconds) - no threshold", ConfigType::SleepTime0, sizeof(ConfigurationParameters::_sleeptime0), &configvalues._sleeptime0, ConfigurationParameters::SetUint16},
         {"Sleep time between GPS fixes (in seconds) - 1st threshold", ConfigType::SleepTime1, sizeof(ConfigurationParameters::_sleeptime1), &configvalues._sleeptime1, ConfigurationParameters::SetUint16},
         {"Sleep time between GPS fixes (in seconds) - 2nd threshold", ConfigType::SleepTime2, sizeof(ConfigurationParameters::_sleeptime2), &configvalues._sleeptime2, ConfigurationParameters::SetUint16},
@@ -162,6 +179,8 @@ private:
         {"Motion - 2nd interrupt duration", ConfigType::MOTION_2ndDuration, sizeof(ConfigurationParameters::_motion2ndDuration), &configvalues._motion2ndDuration, ConfigurationParameters::SetUint8},
         {"Motion - 1st interrupt threshold (0 == disabled)", ConfigType::MOTION_1stThreshold, sizeof(ConfigurationParameters::_motion1stThreshold), &configvalues._motion1stThreshold, ConfigurationParameters::SetUint8},
         {"Motion - 2nd interrupt threshold (0 == disabled)", ConfigType::MOTION_2ndThreshold, sizeof(ConfigurationParameters::_motion2ndThreshold), &configvalues._motion2ndThreshold, ConfigurationParameters::SetUint8},
+        {"Motion - 1st interrupt timer interval (0 == disabled)", ConfigType::MOTION_1stTimerInterval, sizeof(ConfigurationParameters::_motion1stTimerInterval), &configvalues._motion1stTimerInterval, ConfigurationParameters::SetUint8},
+        {"Motion - 2nd interrupt timer interval (0 == disabled)", ConfigType::MOTION_2ndTimerInterval, sizeof(ConfigurationParameters::_motion2ndTimerInterval), &configvalues._motion2ndTimerInterval, ConfigurationParameters::SetUint8},
         {"Restart Device", ConfigType::Restart, sizeof(ConfigurationParameters::_dummy), &configvalues._dummy, ConfigurationParameters::Restart},
         {"Clear Config", ConfigType::ClearConfig, sizeof(ConfigurationParameters::_dummy), &configvalues._dummy, ConfigurationParameters::DoNothing},
         {"Save Config", ConfigType::SaveConfig, sizeof(ConfigurationParameters::_dummy), &configvalues._dummy, ConfigurationParameters::DoNothing}};

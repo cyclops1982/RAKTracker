@@ -12,6 +12,8 @@
 
 ConfigHelper g_configParams;
 SoftwareTimer g_taskWakeupTimer;
+SoftwareTimer g_taskClear1stMotionInterruptTimer;
+SoftwareTimer g_taskClear2ndMotionInterruptTimer;
 SFE_UBLOX_GNSS g_GNSS;
 uint16_t g_msgcount = 0;
 
@@ -23,10 +25,23 @@ uint8_t g_rcvdLoRaData[LORAWAN_BUFFER_SIZE];
 uint8_t g_rcvdDataLen = 0;
 bool g_lorawan_joined = false;
 
+bool g_do1stMotionUpdate = true;
+bool g_do2ndMotionUpdate = true;
+
 void periodicWakeup(TimerHandle_t unused)
 {
   g_EventType |= EventType::Timer;
   xSemaphoreGiveFromISR(g_semaphore, &g_taskHighPrio);
+}
+
+void clear1stMotionInterrupt(TimerHandle_t unused)
+{
+  g_do1stMotionUpdate = true;
+}
+
+void clear2ndMotionInterrupt(TimerHandle_t unused)
+{
+  g_do2ndMotionUpdate = true;
 }
 
 void setup()
@@ -123,16 +138,13 @@ void setup()
   SERIAL_LOG("GPS is setup, HDOP = %d", g_configParams.GetGNSSHDOPLimit());
   g_GNSS.saveConfigSelective(VAL_CFG_SUBSEC_RXMCONF); // Store the fact that we want powersave mode
 
-  pinMode(WB_IO5, INPUT);
-  pinMode(WB_IO6, INPUT);
-
   MotionHelper::InitMotionSensor(
       g_configParams.GetMotion1stThreshold(),
       g_configParams.GetMotion2ndThreshold(),
       g_configParams.GetMotion1stDuration(),
-      g_configParams.GetMotion2ndDuration());
-  attachInterrupt(digitalPinToInterrupt(WB_IO5), MotionHelper::Motion1stInterrupt, RISING);
-  attachInterrupt(digitalPinToInterrupt(WB_IO6), MotionHelper::Motion2ndInterrupt, RISING);
+      g_configParams.GetMotion2ndDuration(),
+      g_configParams.GetMotion1stTimerInterval(),
+      g_configParams.GetMotion2ndTimerInterval());
 
 #ifndef LORAWAN_FAKE
   // Lora stuff
@@ -232,7 +244,6 @@ void handleReceivedMessage()
         case ConfigType::SleepTime1:
         case ConfigType::SleepTime2:
           SERIAL_LOG("Timers are now %u / %u / %u", g_configParams.GetSleepTime0InSeconds(), g_configParams.GetSleepTime1InSeconds(), g_configParams.GetSleepTime2InSeconds());
-          // g_taskWakeupTimer.stop();
           g_taskWakeupTimer.setPeriod(g_configParams.GetSleepTime0InSeconds() * 1000);
           g_taskWakeupTimer.start();
           break;
@@ -274,13 +285,17 @@ void handleReceivedMessage()
         case ConfigType::MOTION_2ndDuration:
         case ConfigType::MOTION_1stThreshold:
         case ConfigType::MOTION_2ndThreshold:
+        case ConfigType::MOTION_1stTimerInterval:
+        case ConfigType::MOTION_2ndTimerInterval:
           SERIAL_LOG("Setting motion sensor to 1/2nd threshold & 1/2nd duration: 0x%02X/0x%02X & 0x%02X/0x%02X",
                      g_configParams.GetMotion1stThreshold(), g_configParams.GetMotion2ndThreshold(), g_configParams.GetMotion1stDuration(), g_configParams.GetMotion2ndDuration());
           MotionHelper::InitMotionSensor(
               g_configParams.GetMotion1stThreshold(),
               g_configParams.GetMotion2ndThreshold(),
               g_configParams.GetMotion1stDuration(),
-              g_configParams.GetMotion2ndDuration());
+              g_configParams.GetMotion2ndDuration(),
+              g_configParams.GetMotion1stTimerInterval(),
+              g_configParams.GetMotion2ndTimerInterval());
           break;
         }
         i += conf.sizeOfOption; // jump to the next one
@@ -410,6 +425,7 @@ void doPeriodicUpdate()
     }
     else
     {
+      // if no motion, go back to normal timer
       g_taskWakeupTimer.setPeriod(g_configParams.GetSleepTime0InSeconds() * 1000);
     }
     g_taskWakeupTimer.start();
@@ -433,18 +449,38 @@ void loop()
 #endif
   if ((g_EventType & EventType::Motion1stInterrupt) == EventType::Motion1stInterrupt)
   {
-    SERIAL_LOG("Motion 1st Interrupt detected");
+    if (g_do1stMotionUpdate == false)
+    {
+      SERIAL_LOG("Skipping 1st motion interrupt handling as timer not yet expired");
+      MotionHelper::GetMotionInterupts(); // read and clear the interrupt
+    }
+    else
+    {
+      // the timer resets the bool value
+      g_taskClear1stMotionInterruptTimer.begin(g_configParams.GetMotion1stTimerInterval() * 1000, clear1stMotionInterrupt);
+      g_taskClear1stMotionInterruptTimer.start();
+      g_do1stMotionUpdate = false;
+      doPeriodicUpdate();
+    }
     g_EventType &= ~EventType::Motion1stInterrupt;
-    MotionHelper::GetMotionInterupts();
   }
   if ((g_EventType & EventType::Motion2ndInterrupt) == EventType::Motion2ndInterrupt)
   {
-    SERIAL_LOG("Motion 2nd Interrupt detected");
-    //doPeriodicUpdate();
+    if (g_do2ndMotionUpdate == false)
+    {
+      SERIAL_LOG("Skipping 2nd motion interrupt handling as timer not yet expired");
+      MotionHelper::GetMotionInterupts(); // read and clear the interrupt
+    }
+    else
+    {
+      // the timer resets the bool value
+      g_taskClear2ndMotionInterruptTimer.begin(g_configParams.GetMotion2ndTimerInterval() * 1000, clear2ndMotionInterrupt);
+      g_taskClear2ndMotionInterruptTimer.start();
+      g_do2ndMotionUpdate = false;
+      doPeriodicUpdate();
+    }
     g_EventType &= ~EventType::Motion2ndInterrupt;
-    MotionHelper::GetMotionInterupts();
   }
-
   if ((g_EventType & EventType::LoraDataReceived) == EventType::LoraDataReceived)
   {
     handleReceivedMessage();
@@ -455,7 +491,6 @@ void loop()
     doPeriodicUpdate();
     g_EventType &= ~EventType::Timer;
   }
-  SERIAL_LOG("EventType: %d", g_EventType);
 
 #ifndef MAX_SAVE
   digitalWrite(LED_GREEN, LOW);
