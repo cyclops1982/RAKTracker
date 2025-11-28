@@ -439,12 +439,11 @@ void loop()
 {
   SERIAL_LOG("loop() - waiting for semaphore");
   xSemaphoreTake(g_semaphore, portMAX_DELAY);
-
-  SERIAL_LOG("Semaphore taken with eventype: %d", g_EventType);
-
 #ifndef MAX_SAVE
   digitalWrite(LED_GREEN, HIGH); // indicate we're doing stuff
 #endif
+  SERIAL_LOG("Semaphore taken with eventype: %d", g_EventType);
+
   if ((g_EventType & EventType::Motion1stInterrupt) == EventType::Motion1stInterrupt)
   {
     if (g_do1stMotionUpdate == false)
