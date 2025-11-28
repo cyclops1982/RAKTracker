@@ -287,8 +287,8 @@ void handleReceivedMessage()
         case ConfigType::MOTION_2ndThreshold:
         case ConfigType::MOTION_1stTimerInterval:
         case ConfigType::MOTION_2ndTimerInterval:
-          SERIAL_LOG("Setting motion sensor to 1/2nd threshold & 1/2nd duration: 0x%02X/0x%02X & 0x%02X/0x%02X",
-                     g_configParams.GetMotion1stThreshold(), g_configParams.GetMotion2ndThreshold(), g_configParams.GetMotion1stDuration(), g_configParams.GetMotion2ndDuration());
+          SERIAL_LOG("Setting motion sensor to 1/2nd threshold & 1/2nd duration & 1stTimerInterval/2ndTimerInterval: 0x%02X/0x%02X & 0x%02X/0x%02X & 0x%02X/0x%02X",
+                     g_configParams.GetMotion1stThreshold(), g_configParams.GetMotion2ndThreshold(), g_configParams.GetMotion1stDuration(), g_configParams.GetMotion2ndDuration(), g_configParams.GetMotion1stTimerInterval(), g_configParams.GetMotion2ndTimerInterval());
           MotionHelper::InitMotionSensor(
               g_configParams.GetMotion1stThreshold(),
               g_configParams.GetMotion2ndThreshold(),
@@ -405,8 +405,6 @@ void doPeriodicUpdate()
 
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL >> 8;
   g_SendLoraData.buffer[size++] = gpsAltitudeMSL;
-
-  // TODO: consider including which motion trigger this was, so we know if it's more of an alarm or not?
 
   // Add motionresult
   if (MotionHelper::IsMotionEnabled())
