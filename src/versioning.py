@@ -3,7 +3,11 @@ import os
 import subprocess
 
 
-git = subprocess.run(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+gittag = subprocess.run(['git', 'describe', '--tags', '--exact-match'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+if gittag:
+    git = gittag
+else:
+    git = subprocess.run(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
 
 VERSION_FILE = "version.h"
 VERSION_CONTENTS = f"#pragma once\n#define VERSIONSTRING \"{git}\""
