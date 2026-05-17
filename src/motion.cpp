@@ -53,7 +53,7 @@ void MotionHelper::InitMotionSensor(uint8_t firstThreshold, uint8_t secondThresh
         delay(250);
         g_motionsensor.writeRegister(LIS3DH_CTRL_REG1, (LIS3DHEnums::CTRL_REG1::ORD1 | LIS3DHEnums::CTRL_REG1::LPen | LIS3DHEnums::CTRL_REG1::XYZen)); // 10Hz, Low Power = 3 μA.
         g_motionsensor.writeRegister(LIS3DH_CTRL_REG2, (LIS3DHEnums::CTRL_REG2::HP_IA1 | LIS3DHEnums::CTRL_REG2::HP_IA2));
-        if (firstThreshold > 0)
+        if (firstThreshold > 0 && firstDuration > 0)
         {
             g_motionsensor.writeRegister(LIS3DH_CTRL_REG3, LIS3DHEnums::CTRL_REG3::I1_IA1);
         }
@@ -63,7 +63,7 @@ void MotionHelper::InitMotionSensor(uint8_t firstThreshold, uint8_t secondThresh
         }
         g_motionsensor.writeRegister(LIS3DH_CTRL_REG4, LIS3DHEnums::CTRL_REG4::FS_2G); // 16mg
         g_motionsensor.writeRegister(LIS3DH_CTRL_REG5, latch);
-        if (secondThreshold > 0)
+        if (secondThreshold > 0 && secondDuration > 0)
         {
             g_motionsensor.writeRegister(LIS3DH_CTRL_REG6, LIS3DHEnums::CTRL_REG6::I2_IA2);
         }
@@ -73,14 +73,14 @@ void MotionHelper::InitMotionSensor(uint8_t firstThreshold, uint8_t secondThresh
         }
         g_motionsensor.writeRegister(LIS3DH_REFERENCE, 0);
 
-        if (firstThreshold > 0)
+        if (firstThreshold > 0 && firstDuration > 0)
         {
             g_motionsensor.writeRegister(LIS3DH_INT1_THS, firstThreshold); // Threshold is value * REG4, so for us * 16mg
             g_motionsensor.writeRegister(LIS3DH_INT1_DURATION, firstDuration);
             g_motionsensor.writeRegister(LIS3DH_INT1_CFG, (LIS3DHEnums::INT_CFG::YHIE | LIS3DHEnums::INT_CFG::XHIE | LIS3DHEnums::INT_CFG::ZHIE));
             latch = latch | LIS3DHEnums::CTRL_REG5::LIR_INT1;
         }
-        if (secondThreshold > 0)
+        if (secondThreshold > 0 && secondDuration > 0)
         {
             g_motionsensor.writeRegister(LIS3DH_INT2_THS, secondThreshold);
             g_motionsensor.writeRegister(LIS3DH_INT2_DURATION, secondDuration);
